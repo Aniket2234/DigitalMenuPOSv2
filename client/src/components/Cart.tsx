@@ -1,4 +1,4 @@
-import { ShoppingCart, Trash2, Plus, Minus, ChevronDown, X } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -33,6 +38,7 @@ export function Cart() {
   } = useCart();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
   const handleSaveCart = () => {
     toast({
@@ -188,16 +194,37 @@ export function Cart() {
                   </div>
 
                   {/* Custom Notes */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Special Instructions</label>
-                    <Textarea
-                      placeholder="Add notes (e.g., no onions, extra sauce...)"
-                      value={item.notes || ''}
-                      onChange={(e) => updateNotes(item.id, e.target.value)}
-                      className="resize-none h-20"
-                      data-testid={`textarea-notes-${item.menuItemId}`}
-                    />
-                  </div>
+                  <Collapsible
+                    open={expandedNotes[item.id] || false}
+                    onOpenChange={(open) => {
+                      setExpandedNotes(prev => ({ ...prev, [item.id]: open }));
+                    }}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full flex items-center justify-between"
+                        data-testid={`button-toggle-notes-${item.menuItemId}`}
+                      >
+                        <span className="text-sm font-medium">Special Instructions</span>
+                        {expandedNotes[item.id] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                      <Textarea
+                        placeholder="Add notes (e.g., no onions, extra sauce...)"
+                        value={item.notes || ''}
+                        onChange={(e) => updateNotes(item.id, e.target.value)}
+                        className="resize-none h-20"
+                        data-testid={`textarea-notes-${item.menuItemId}`}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               ))}
 

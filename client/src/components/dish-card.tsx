@@ -1,14 +1,16 @@
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { MenuItem } from "@shared/schema";
 
 interface DishCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem) => void;
+  quantity?: number;
 }
 
-export default function DishCard({ item, onAddToCart }: DishCardProps) {
+export default function DishCard({ item, onAddToCart, quantity = 0 }: DishCardProps) {
   return (
     <motion.div
       whileHover={{ y: -2, scale: 1.01 }}
@@ -55,15 +57,27 @@ export default function DishCard({ item, onAddToCart }: DishCardProps) {
               >
                 ₹{item.price}
               </span>
-              <Button
-                size="sm"
-                onClick={() => onAddToCart(item)}
-                className="flex-shrink-0"
-                data-testid={`button-add-to-cart-${item._id}`}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => onAddToCart(item)}
+                  className="relative"
+                  data-testid={`button-add-to-cart-${item._id}`}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+                {quantity > 0 && (
+                  <Badge
+                    variant="default"
+                    className="px-2 py-1"
+                    style={{ backgroundColor: 'var(--mings-orange)' }}
+                    data-testid={`badge-quantity-${item._id}`}
+                  >
+                    {quantity}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>

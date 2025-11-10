@@ -146,15 +146,18 @@ export default function Menu() {
   const [isListening, setIsListening] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState(null);
   const [voiceSearchSupported, setVoiceSearchSupported] = useState(false);
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
 
   const { data: menuItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items"],
   });
 
-  const { data: cartItems = [] } = useQuery({
-    queryKey: ["/api/cart"],
-  });
+  // Calculate quantity for each menu item from cart
+  const getItemQuantity = (menuItemId: string) => {
+    return cart.items
+      .filter(item => item.menuItemId === menuItemId)
+      .reduce((total, item) => total + item.quantity, 0);
+  };
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -265,8 +268,6 @@ export default function Menu() {
     searchQuery,
     categoryIdToDbCategory,
   ]);
-
-  const cartItemCount = Array.isArray(cartItems) ? cartItems.length : 0;
 
   const currentFilter = filterTypes.find((f) => f.id === filterType);
 
@@ -905,7 +906,8 @@ export default function Menu() {
           className="h-full" // Ensures each grid item takes full height
         >
           <DishCard 
-            item={item} 
+            item={item}
+            quantity={getItemQuantity(item._id.toString())}
             onAddToCart={(menuItem) => {
               addToCart({
                 menuItemId: menuItem._id.toString(),
