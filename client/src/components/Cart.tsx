@@ -57,13 +57,35 @@ export function Cart() {
 
   const handleOrder = () => {
     const hasExistingOrder = cart.items.some(item => item.isOrdered);
-    const unorderedCount = cart.items.filter(item => !item.isOrdered).length;
+    const additions = cart.items.reduce((sum, item) => {
+      const orderedQty = item.orderedQuantity || 0;
+      const diff = item.quantity - orderedQty;
+      return sum + (diff > 0 ? diff : 0);
+    }, 0);
+    const removals = cart.items.reduce((sum, item) => {
+      const orderedQty = item.orderedQuantity || 0;
+      const diff = orderedQty - item.quantity;
+      return sum + (diff > 0 ? diff : 0);
+    }, 0);
+    
+    let description = '';
+    if (hasExistingOrder) {
+      if (additions > 0 && removals > 0) {
+        description = `Order updated: ${additions} item${additions === 1 ? '' : 's'} added, ${removals} removed`;
+      } else if (additions > 0) {
+        description = `${additions} new item${additions === 1 ? '' : 's'} added to your order!`;
+      } else if (removals > 0) {
+        description = `${removals} item${removals === 1 ? '' : 's'} removed from your order`;
+      } else {
+        description = 'Order updated successfully!';
+      }
+    } else {
+      description = `Your order for ${cart.itemCount} items (₹${cart.total.toFixed(2)}) has been received!`;
+    }
     
     toast({
       title: hasExistingOrder ? 'Order Updated' : 'Order Placed',
-      description: hasExistingOrder 
-        ? `${unorderedCount} new item${unorderedCount === 1 ? '' : 's'} added to your order!`
-        : `Your order for ${cart.itemCount} items (₹${cart.total.toFixed(2)}) has been received!`,
+      description,
     });
     markItemsAsOrdered();
   };
@@ -130,7 +152,13 @@ export function Cart() {
             </div>
           ) : (
             <>
-              {cart.items.map((item) => (
+              {cart.items.filter(item => item.quantity > 0).length === 0 && hasUnorderedItems() && (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p className="text-sm">All items removed from order</p>
+                  <p className="text-xs mt-1">Click Update Order to confirm removal</p>
+                </div>
+              )}
+              {cart.items.filter(item => item.quantity > 0).map((item) => (
                 <div
                   key={item.id}
                   className="border rounded-md p-4 space-y-3"

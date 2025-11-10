@@ -9,6 +9,7 @@ export interface CartItemWithDetails {
   notes?: string;
   spiceLevel?: 'regular' | 'less-spicy' | 'more-spicy' | 'no-spicy';
   isOrdered?: boolean;
+  orderedQuantity?: number;
 }
 
 export interface Cart {

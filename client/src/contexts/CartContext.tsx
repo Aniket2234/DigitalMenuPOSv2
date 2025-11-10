@@ -68,7 +68,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeFromCart = (id: string) => {
     setCart(prev => {
-      const newItems = prev.items.filter(i => i.id !== id);
+      const itemToRemove = prev.items.find(i => i.id === id);
+      let newItems;
+      
+      // If item was previously ordered, keep it with quantity=0 to track the removal
+      if (itemToRemove && (itemToRemove.orderedQuantity || 0) > 0) {
+        newItems = prev.items.map(i => i.id === id ? { ...i, quantity: 0 } : i);
+      } else {
+        // Otherwise, completely remove it
+        newItems = prev.items.filter(i => i.id !== id);
+      }
+      
       const total = newItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
       const itemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
       return { items: newItems, total, itemCount };
@@ -108,13 +118,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const markItemsAsOrdered = () => {
     setCart(prev => {
-      const newItems = prev.items.map(i => ({ ...i, isOrdered: true }));
-      return { ...prev, items: newItems };
+      // Mark all items as ordered and clean up items with quantity=0
+      const newItems = prev.items
+        .map(i => ({ 
+          ...i, 
+          isOrdered: true,
+          orderedQuantity: i.quantity
+        }))
+        .filter(i => i.quantity > 0); // Remove items that were deleted (quantity=0)
+      
+      const total = newItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
+      const itemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
+      return { items: newItems, total, itemCount };
     });
   };
 
   const hasUnorderedItems = () => {
-    return cart.items.some(item => !item.isOrdered);
+    return cart.items.some(item => item.quantity !== (item.orderedQuantity || 0));
   };
 
   return (
