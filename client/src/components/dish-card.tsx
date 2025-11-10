@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { MenuItem } from "@shared/schema";
 
 interface DishCardProps {
   item: MenuItem;
+  onAddToCart: (item: MenuItem) => void;
 }
 
-export default function DishCard({ item }: DishCardProps) {
+export default function DishCard({ item, onAddToCart }: DishCardProps) {
   return (
     <motion.div
       whileHover={{ y: -2, scale: 1.01 }}
@@ -43,15 +46,24 @@ export default function DishCard({ item }: DishCardProps) {
             </p>
           </div>
 
-          {/* Price Section */}
+          {/* Price and Add to Cart Section */}
           <div className="mt-2 pt-2 border-t border-gray-100">
-            <div className="flex justify-center">
+            <div className="flex items-center justify-between gap-2">
               <span
                 className="font-serif font-bold text-sm md:text-base"
                 style={{ color: 'var(--mings-orange)' }}
               >
                 ₹{item.price}
               </span>
+              <Button
+                size="sm"
+                onClick={() => onAddToCart(item)}
+                className="flex-shrink-0"
+                data-testid={`button-add-to-cart-${item._id}`}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
             </div>
           </div>
         </div>

@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import DishCard from "@/components/dish-card";
+import { Cart } from "@/components/Cart";
+import { useCart } from "@/hooks/useCart";
 import type { MenuItem } from "@shared/schema";
 
 // Type declarations for Speech Recognition API
@@ -144,6 +146,7 @@ export default function Menu() {
   const [isListening, setIsListening] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState(null);
   const [voiceSearchSupported, setVoiceSearchSupported] = useState(false);
+  const { addToCart } = useCart();
 
   const { data: menuItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items"],
@@ -316,7 +319,8 @@ export default function Menu() {
             </div>
 
             <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 flex-shrink-0">
-              {/* Instagram Button was here we removed it*/}
+              {/* Cart Button */}
+              <Cart />
 
               {/* Hamburger Menu Button */}
               <Button
@@ -900,7 +904,18 @@ export default function Menu() {
           transition={{ duration: 0.6, delay: index * 0.1 }}
           className="h-full" // Ensures each grid item takes full height
         >
-          <DishCard item={item} />
+          <DishCard 
+            item={item} 
+            onAddToCart={(menuItem) => {
+              addToCart({
+                menuItemId: menuItem._id.toString(),
+                name: menuItem.name,
+                price: menuItem.price.toString(),
+                isVeg: menuItem.isVeg,
+                image: menuItem.image,
+              });
+            }}
+          />
         </motion.div>
       ))}
     </motion.div>
