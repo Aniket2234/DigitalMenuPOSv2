@@ -1,4 +1,4 @@
-import { ShoppingCart, Trash2, Plus, Minus, StickyNote } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, StickyNote, Receipt, CreditCard, Smartphone, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,8 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 export function Cart() {
   const {
     cart,
+    tableNumber,
+    floorNumber,
     removeFromCart,
     updateQuantity,
     clearCart,
@@ -48,9 +50,11 @@ export function Cart() {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedCartItem, setSelectedCartItem] = useState<any | null>(null);
   const [tempNotes, setTempNotes] = useState('');
   const [tempSpiceLevel, setTempSpiceLevel] = useState<'regular' | 'less-spicy' | 'more-spicy' | 'no-spicy'>('regular');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card'>('cash');
 
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -67,6 +71,28 @@ export function Cart() {
       title: 'Cart Saved',
       description: 'Your cart has been saved successfully!',
     });
+  };
+
+  const handleGenerateInvoice = () => {
+    if (!customer) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to generate invoice',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (cart.items.filter(item => item.quantity > 0).length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Your cart is empty',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setPaymentDialogOpen(true);
   };
 
   const handleOrder = async () => {
@@ -126,6 +152,8 @@ export function Cart() {
       status: 'pending' as const,
       paymentStatus: 'pending' as const,
       paymentMethod: 'cash',
+      tableNumber,
+      floorNumber,
     };
 
     try {
@@ -155,6 +183,77 @@ export function Cart() {
       toast({
         title: 'Error',
         description: 'Failed to place order. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!customer) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to complete payment',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (cart.items.filter(item => item.quantity > 0).length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Your cart is empty',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const subtotal = cart.total;
+    const taxRate = 0.05;
+    const tax = subtotal * taxRate;
+    const total = subtotal + tax;
+
+    const orderData = {
+      customerId: customer!._id,
+      customerName: customer!.name,
+      customerPhone: customer!.phoneNumber,
+      items: cart.items
+        .filter(item => item.quantity > 0)
+        .map(item => ({
+          menuItemId: item.menuItemId,
+          menuItemName: item.name,
+          quantity: item.quantity,
+          price: Number(item.price),
+          total: Number(item.price) * item.quantity,
+          spiceLevel: item.spiceLevel,
+          notes: item.notes,
+        })),
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
+      status: 'pending' as const,
+      paymentStatus: 'pending' as const,
+      paymentMethod: paymentMethod,
+      tableNumber: tableNumber,
+      floorNumber: floorNumber,
+    };
+
+    try {
+      await createOrderMutation.mutateAsync(orderData);
+      
+      setPaymentDialogOpen(false);
+      setIsOpen(false);
+      clearCart();
+      setPaymentMethod('cash');
+      
+      toast({
+        title: 'Order Confirmed!',
+        description: `The bill will be generated and brought to you at Table No: ${tableNumber}, Floor No: ${floorNumber}`,
+        duration: 5000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to process payment. Please try again.',
         variant: 'destructive',
       });
     }
@@ -350,6 +449,15 @@ export function Cart() {
                   <Button
                     variant="outline"
                     className="w-full"
+                    onClick={handleGenerateInvoice}
+                    data-testid="button-generate-invoice"
+                  >
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Generate Invoice
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
                     onClick={handleSaveCart}
                     data-testid="button-save-cart"
                   >
@@ -421,6 +529,86 @@ export function Cart() {
               data-testid="button-save-notes"
             >
               Save Preferences
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Payment Method</DialogTitle>
+            <DialogDescription>
+              Select your preferred payment method
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-md p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Table:</span>
+                <Badge variant="secondary">{tableNumber}</Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Floor:</span>
+                <Badge variant="secondary">{floorNumber}</Badge>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Payment Method</label>
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                  className="h-20 flex flex-col gap-1"
+                  onClick={() => setPaymentMethod('cash')}
+                  data-testid="button-payment-cash"
+                >
+                  <Wallet className="h-6 w-6" />
+                  <span className="text-xs">Cash</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'upi' ? 'default' : 'outline'}
+                  className="h-20 flex flex-col gap-1"
+                  onClick={() => setPaymentMethod('upi')}
+                  data-testid="button-payment-upi"
+                >
+                  <Smartphone className="h-6 w-6" />
+                  <span className="text-xs">UPI</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                  className="h-20 flex flex-col gap-1"
+                  onClick={() => setPaymentMethod('card')}
+                  data-testid="button-payment-card"
+                >
+                  <CreditCard className="h-6 w-6" />
+                  <span className="text-xs">Card</span>
+                </Button>
+              </div>
+            </div>
+            <div className="border-t pt-3">
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Total Amount</span>
+                <span>₹{cart.total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPaymentDialogOpen(false)}
+              data-testid="button-cancel-payment"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePayment}
+              data-testid="button-proceed-payment"
+            >
+              Proceed to Payment
             </Button>
           </DialogFooter>
         </DialogContent>

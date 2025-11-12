@@ -172,7 +172,12 @@ export default function Menu() {
   const [itemPreferences, setItemPreferences] = useState<Record<string, { spiceLevel: string; notes: string }>>({});
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   
-  const { addToCart, cart, updateQuantity, removeFromCart, updateNotes, updateSpiceLevel } = useCart();
+  const { addToCart, cart, updateQuantity, removeFromCart, updateNotes, updateSpiceLevel, setSeatingInfo } = useCart();
+
+  // Set table and floor info on component mount
+  useEffect(() => {
+    setSeatingInfo('T1', 'First floor');
+  }, [setSeatingInfo]);
 
   const { data: menuItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items"],

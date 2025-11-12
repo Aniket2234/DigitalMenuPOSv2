@@ -2,9 +2,13 @@ import { createContext, useState, useEffect, ReactNode } from 'react';
 import type { CartItemWithDetails, Cart } from '../lib/cart-types';
 
 const CART_STORAGE_KEY = 'restaurant-pos-cart';
+const SEATING_STORAGE_KEY = 'restaurant-pos-seating';
 
 interface CartContextType {
   cart: Cart;
+  tableNumber: string;
+  floorNumber: string;
+  setSeatingInfo: (table: string, floor: string) => void;
   addToCart: (item: Omit<CartItemWithDetails, 'id' | 'quantity'>) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
@@ -19,6 +23,8 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>({ items: [], total: 0, itemCount: 0 });
+  const [tableNumber, setTableNumber] = useState<string>('');
+  const [floorNumber, setFloorNumber] = useState<string>('');
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -31,12 +37,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error('Error loading cart:', error);
       }
     }
+
+    const savedSeating = localStorage.getItem(SEATING_STORAGE_KEY);
+    if (savedSeating) {
+      try {
+        const { table, floor } = JSON.parse(savedSeating);
+        setTableNumber(table || '');
+        setFloorNumber(floor || '');
+      } catch (error) {
+        console.error('Error loading seating:', error);
+      }
+    }
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   }, [cart]);
+
+  // Save seating info to localStorage
+  useEffect(() => {
+    if (tableNumber || floorNumber) {
+      localStorage.setItem(SEATING_STORAGE_KEY, JSON.stringify({
+        table: tableNumber,
+        floor: floorNumber
+      }));
+    }
+  }, [tableNumber, floorNumber]);
+
+  const setSeatingInfo = (table: string, floor: string) => {
+    setTableNumber(table);
+    setFloorNumber(floor);
+  };
 
   const addToCart = (item: Omit<CartItemWithDetails, 'id' | 'quantity'>) => {
     setCart(prev => {
@@ -141,6 +173,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         cart,
+        tableNumber,
+        floorNumber,
+        setSeatingInfo,
         addToCart,
         removeFromCart,
         updateQuantity,

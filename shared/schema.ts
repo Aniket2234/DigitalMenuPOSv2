@@ -66,6 +66,8 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'preparing' | 'completed' | 'cancelled';
   paymentStatus: 'pending' | 'paid' | 'failed';
   paymentMethod?: string;
+  tableNumber?: string;
+  floorNumber?: string;
   orderDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -119,6 +121,8 @@ export const insertOrderSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'preparing', 'completed', 'cancelled']).default('pending'),
   paymentStatus: z.enum(['pending', 'paid', 'failed']).default('pending'),
   paymentMethod: z.string().optional(),
+  tableNumber: z.string().optional(),
+  floorNumber: z.string().optional(),
 });
 
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
