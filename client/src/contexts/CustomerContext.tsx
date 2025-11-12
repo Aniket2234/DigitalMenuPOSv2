@@ -14,13 +14,13 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomerState] = useState<Customer | null>(null);
 
   useEffect(() => {
-    const storedCustomer = localStorage.getItem("customer");
+    const storedCustomer = sessionStorage.getItem("customer");
     if (storedCustomer) {
       try {
         setCustomerState(JSON.parse(storedCustomer));
       } catch (error) {
         console.error("Failed to parse stored customer:", error);
-        localStorage.removeItem("customer");
+        sessionStorage.removeItem("customer");
       }
     }
   }, []);
@@ -28,9 +28,9 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const setCustomer = (customer: Customer | null) => {
     setCustomerState(customer);
     if (customer) {
-      localStorage.setItem("customer", JSON.stringify(customer));
+      sessionStorage.setItem("customer", JSON.stringify(customer));
     } else {
-      localStorage.removeItem("customer");
+      sessionStorage.removeItem("customer");
     }
   };
 

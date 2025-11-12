@@ -53,7 +53,7 @@ export function CustomerRegistrationDialog({ open, onOpenChange, onSuccess }: Cu
       toast({
         title: "Welcome!",
         description: customer.visitCount > 1 
-          ? `Welcome back, ${customer.name}! This is your visit #${customer.visitCount}`
+          ? `Welcome back, ${customer.name}!`
           : `Welcome, ${customer.name}! Enjoy your first visit!`,
       });
 

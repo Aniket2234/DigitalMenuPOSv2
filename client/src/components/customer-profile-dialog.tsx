@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useQuery } from "@tanstack/react-query";
 import type { Order } from "@shared/schema";
-import { User, Phone, Calendar, ShoppingBag, LogOut, Loader2 } from "lucide-react";
+import { User, Phone, Calendar, ShoppingBag, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -15,17 +15,12 @@ interface CustomerProfileDialogProps {
 }
 
 export function CustomerProfileDialog({ open, onOpenChange }: CustomerProfileDialogProps) {
-  const { customer, logout } = useCustomer();
+  const { customer } = useCustomer();
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/customer", customer?._id?.toString()],
     enabled: !!customer?._id && open,
   });
-
-  const handleLogout = () => {
-    logout();
-    onOpenChange(false);
-  };
 
   if (!customer) return null;
 
@@ -136,16 +131,6 @@ export function CustomerProfileDialog({ open, onOpenChange }: CustomerProfileDia
               </ScrollArea>
             )}
           </div>
-
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleLogout}
-            data-testid="button-logout"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
