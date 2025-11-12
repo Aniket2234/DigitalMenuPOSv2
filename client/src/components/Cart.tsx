@@ -29,6 +29,9 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { useCustomer } from '@/contexts/CustomerContext';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export function Cart() {
   const {
@@ -41,12 +44,23 @@ export function Cart() {
     markItemsAsOrdered,
     hasUnorderedItems,
   } = useCart();
+  const { customer } = useCustomer();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [selectedCartItem, setSelectedCartItem] = useState<any | null>(null);
   const [tempNotes, setTempNotes] = useState('');
-  const [tempSpiceLevel, setTempSpiceLevel] = useState('regular');
+  const [tempSpiceLevel, setTempSpiceLevel] = useState<'regular' | 'less-spicy' | 'more-spicy' | 'no-spicy'>('regular');
+
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const response = await apiRequest('POST', '/api/orders', orderData);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customer?._id] });
+    },
+  });
 
   const handleSaveCart = () => {
     toast({
@@ -55,7 +69,25 @@ export function Cart() {
     });
   };
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
+    if (!customer) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to place an order',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (cart.items.filter(item => item.quantity > 0).length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Your cart is empty',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const hasExistingOrder = cart.items.some(item => item.isOrdered);
     const additions = cart.items.reduce((sum, item) => {
       const orderedQty = item.orderedQuantity || 0;
@@ -68,26 +100,64 @@ export function Cart() {
       return sum + (diff > 0 ? diff : 0);
     }, 0);
     
-    let description = '';
-    if (hasExistingOrder) {
-      if (additions > 0 && removals > 0) {
-        description = `Order updated: ${additions} item${additions === 1 ? '' : 's'} added, ${removals} removed`;
-      } else if (additions > 0) {
-        description = `${additions} new item${additions === 1 ? '' : 's'} added to your order!`;
-      } else if (removals > 0) {
-        description = `${removals} item${removals === 1 ? '' : 's'} removed from your order`;
+    const subtotal = cart.total;
+    const taxRate = 0.05;
+    const tax = subtotal * taxRate;
+    const total = subtotal + tax;
+
+    const orderData = {
+      customerId: customer._id,
+      customerName: customer.name,
+      customerPhone: customer.phoneNumber,
+      items: cart.items
+        .filter(item => item.quantity > 0)
+        .map(item => ({
+          menuItemId: item.menuItemId,
+          menuItemName: item.name,
+          quantity: item.quantity,
+          price: Number(item.price),
+          total: Number(item.price) * item.quantity,
+          spiceLevel: item.spiceLevel,
+          notes: item.notes,
+        })),
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
+      status: 'pending' as const,
+      paymentStatus: 'pending' as const,
+      paymentMethod: 'cash',
+    };
+
+    try {
+      await createOrderMutation.mutateAsync(orderData);
+      
+      let description = '';
+      if (hasExistingOrder) {
+        if (additions > 0 && removals > 0) {
+          description = `Order updated: ${additions} item${additions === 1 ? '' : 's'} added, ${removals} removed`;
+        } else if (additions > 0) {
+          description = `${additions} new item${additions === 1 ? '' : 's'} added to your order!`;
+        } else if (removals > 0) {
+          description = `${removals} item${removals === 1 ? '' : 's'} removed from your order`;
+        } else {
+          description = 'Order updated successfully!';
+        }
       } else {
-        description = 'Order updated successfully!';
+        description = `Your order for ${cart.itemCount} items (₹${cart.total.toFixed(2)}) has been received!`;
       }
-    } else {
-      description = `Your order for ${cart.itemCount} items (₹${cart.total.toFixed(2)}) has been received!`;
+      
+      toast({
+        title: hasExistingOrder ? 'Order Updated' : 'Order Placed',
+        description,
+      });
+      markItemsAsOrdered();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to place order. Please try again.',
+        variant: 'destructive',
+      });
     }
-    
-    toast({
-      title: hasExistingOrder ? 'Order Updated' : 'Order Placed',
-      description,
-    });
-    markItemsAsOrdered();
   };
 
   const handleNotesClick = (item: any) => {
@@ -312,7 +382,10 @@ export function Cart() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Spice Level</label>
-              <Select value={tempSpiceLevel} onValueChange={setTempSpiceLevel}>
+              <Select 
+                value={tempSpiceLevel} 
+                onValueChange={(value) => setTempSpiceLevel(value as 'regular' | 'less-spicy' | 'more-spicy' | 'no-spicy')}
+              >
                 <SelectTrigger data-testid="select-spice-level">
                   <SelectValue placeholder="Select spice level" />
                 </SelectTrigger>

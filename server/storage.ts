@@ -697,6 +697,9 @@ export class MongoStorage implements IStorage {
       };
 
       const result = await this.ordersCollection.insertOne(order as Order);
+      
+      await this.incrementVisitCount(insertOrder.customerPhone);
+      
       return {
         _id: result.insertedId,
         ...order,

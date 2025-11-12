@@ -50,6 +50,8 @@ export interface OrderItem {
   quantity: number;
   price: number;
   total: number;
+  spiceLevel?: 'no-spicy' | 'less-spicy' | 'regular' | 'more-spicy';
+  notes?: string;
 }
 
 export interface Order {
@@ -102,6 +104,8 @@ export const insertOrderItemSchema = z.object({
   quantity: z.number().positive(),
   price: z.number().positive(),
   total: z.number().positive(),
+  spiceLevel: z.enum(['no-spicy', 'less-spicy', 'regular', 'more-spicy']).optional(),
+  notes: z.string().optional(),
 });
 
 export const insertOrderSchema = z.object({
