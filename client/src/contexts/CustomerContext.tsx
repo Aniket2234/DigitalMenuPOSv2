@@ -10,6 +10,22 @@ interface CustomerContextType {
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
+function normalizeCustomer(customer: any): Customer {
+  if (customer._id && typeof customer._id === 'object' && customer._id.$oid) {
+    return {
+      ...customer,
+      _id: customer._id.$oid,
+    };
+  }
+  if (customer._id && typeof customer._id === 'object') {
+    return {
+      ...customer,
+      _id: customer._id.toString(),
+    };
+  }
+  return customer;
+}
+
 export function CustomerProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomerState] = useState<Customer | null>(null);
 
@@ -17,7 +33,8 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
     const storedCustomer = sessionStorage.getItem("customer");
     if (storedCustomer) {
       try {
-        setCustomerState(JSON.parse(storedCustomer));
+        const parsed = JSON.parse(storedCustomer);
+        setCustomerState(normalizeCustomer(parsed));
       } catch (error) {
         console.error("Failed to parse stored customer:", error);
         sessionStorage.removeItem("customer");
@@ -26,9 +43,10 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setCustomer = (customer: Customer | null) => {
-    setCustomerState(customer);
-    if (customer) {
-      sessionStorage.setItem("customer", JSON.stringify(customer));
+    const normalized = customer ? normalizeCustomer(customer) : null;
+    setCustomerState(normalized);
+    if (normalized) {
+      sessionStorage.setItem("customer", JSON.stringify(normalized));
     } else {
       sessionStorage.removeItem("customer");
     }

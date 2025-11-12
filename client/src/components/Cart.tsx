@@ -132,7 +132,7 @@ export function Cart() {
     const total = subtotal + tax;
 
     const orderData = {
-      customerId: customer._id,
+      customerId: typeof customer._id === 'string' ? customer._id : customer._id.toString(),
       customerName: customer.name,
       customerPhone: customer.phoneNumber,
       items: cart.items
@@ -213,7 +213,7 @@ export function Cart() {
     const total = subtotal + tax;
 
     const orderData = {
-      customerId: customer!._id,
+      customerId: typeof customer!._id === 'string' ? customer!._id : customer!._id.toString(),
       customerName: customer!.name,
       customerPhone: customer!.phoneNumber,
       items: cart.items
