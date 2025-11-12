@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCartItemSchema } from "@shared/schema";
+import { insertCartItemSchema, insertCustomerSchema, insertOrderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Menu items routes
@@ -73,6 +73,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Cart cleared" });
     } catch (error) {
       res.status(500).json({ message: "Failed to clear cart" });
+    }
+  });
+
+  // Customer routes
+  app.post("/api/customers/register", async (req, res) => {
+    try {
+      const validatedData = insertCustomerSchema.parse(req.body);
+      
+      // Check if customer already exists
+      const existingCustomer = await storage.getCustomerByPhone(validatedData.phoneNumber);
+      
+      if (existingCustomer) {
+        // Update name if different and increment visit count
+        if (existingCustomer.name !== validatedData.name) {
+          const updatedCustomer = await storage.updateCustomerName(validatedData.phoneNumber, validatedData.name);
+          await storage.incrementVisitCount(validatedData.phoneNumber);
+          return res.json(updatedCustomer);
+        } else {
+          // Just increment visit count
+          await storage.incrementVisitCount(validatedData.phoneNumber);
+          return res.json(existingCustomer);
+        }
+      }
+      
+      // Create new customer
+      const customer = await storage.createCustomer(validatedData);
+      res.json(customer);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid customer data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to register customer" });
+    }
+  });
+
+  app.get("/api/customers/:phoneNumber", async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const customer = await storage.getCustomerByPhone(phoneNumber);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(customer);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customer" });
+    }
+  });
+
+  // Order routes
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const validatedData = insertOrderSchema.parse(req.body);
+      const order = await storage.createOrder(validatedData);
+      res.json(order);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid order data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  app.get("/api/orders/customer/:customerId", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const orders = await storage.getOrdersByCustomer(customerId);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customer orders" });
+    }
+  });
+
+  app.get("/api/orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch order" });
+    }
+  });
+
+  app.patch("/api/orders/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      await storage.updateOrderStatus(id, status);
+      res.json({ message: "Order status updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update order status" });
+    }
+  });
+
+  app.patch("/api/orders/:id/payment", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { paymentStatus, paymentMethod } = req.body;
+      await storage.updatePaymentStatus(id, paymentStatus, paymentMethod);
+      res.json({ message: "Payment status updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update payment status" });
     }
   });
 
