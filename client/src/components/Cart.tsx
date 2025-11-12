@@ -375,9 +375,11 @@ export function Cart() {
                           variant="ghost"
                           size="icon"
                           onClick={() => removeFromCart(item.id)}
+                          disabled={item.isOrdered}
+                          className={item.isOrdered ? "opacity-40 cursor-not-allowed" : ""}
                           data-testid={`button-remove-${item.menuItemId}`}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className={`h-4 w-4 ${item.isOrdered ? 'text-muted-foreground' : 'text-destructive'}`} />
                         </Button>
                       </div>
 
@@ -386,7 +388,8 @@ export function Cart() {
                           variant="outline"
                           size="icon"
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
+                          disabled={item.quantity <= 1 || item.isOrdered}
+                          className={item.isOrdered ? "opacity-40 cursor-not-allowed" : ""}
                           data-testid={`button-decrease-${item.menuItemId}`}
                         >
                           <Minus className="h-4 w-4" />
