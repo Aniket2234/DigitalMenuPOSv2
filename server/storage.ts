@@ -453,6 +453,54 @@ export class MongoStorage implements IStorage {
     await this.client.connect();
     // DISABLED: Auto-creation of collections to prevent database modifications
     // await this.ensureCollectionsExist();
+    
+    // Run migration to ensure all customer documents have required fields
+    await this.migrateCustomerFields();
+  }
+
+  /**
+   * Migration function to backfill missing fields in existing customer documents
+   * This ensures all customers have the complete schema as defined in DIGITAL_MENU_STORAGE.md
+   */
+  private async migrateCustomerFields(): Promise<void> {
+    try {
+      console.log('[Migration] Starting customer fields backfill...');
+      const now = new Date();
+      
+      // Update all customer documents to ensure they have all required fields
+      // Using $set with conditional logic to avoid overwriting existing values
+      const result = await this.customersCollection.updateMany(
+        {}, // Match all documents
+        [
+          {
+            $set: {
+              // Only set if field doesn't exist
+              visitCount: { $ifNull: ['$visitCount', 1] },
+              favorites: { $ifNull: ['$favorites', []] },
+              firstVisit: { $ifNull: ['$firstVisit', now] },
+              lastVisit: { $ifNull: ['$lastVisit', now] },
+              loginStatus: { $ifNull: ['$loginStatus', 'loggedout'] },
+              tableNumber: { $ifNull: ['$tableNumber', 'NA'] },
+              floorNumber: { $ifNull: ['$floorNumber', 'NA'] },
+              tableStatus: { $ifNull: ['$tableStatus', 'free'] },
+              currentOrder: { $ifNull: ['$currentOrder', null] },
+              orderHistory: { $ifNull: ['$orderHistory', []] },
+              createdAt: { $ifNull: ['$createdAt', now] },
+              updatedAt: { $ifNull: ['$updatedAt', now] },
+            }
+          }
+        ]
+      );
+
+      console.log(`[Migration] Customer fields migration complete:
+        - Matched: ${result.matchedCount} documents
+        - Modified: ${result.modifiedCount} documents`);
+        
+    } catch (error) {
+      console.error('[Migration] Error during customer fields migration:', error);
+      // Don't throw - allow server to start even if migration fails
+      // The migration will be retried on next server restart
+    }
   }
 
   private async ensureCollectionsExist() {
