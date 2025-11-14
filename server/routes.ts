@@ -135,6 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const seatingSchema = z.object({
         tableNumber: z.string().min(1, "Table number is required"),
+        tableName: z.string().min(1, "Table name is required"),
         floorNumber: z.string().min(1, "Floor number is required"),
       });
       
@@ -143,6 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedCustomer = await storage.updateCustomerTableInfo(
         normalizedPhone,
         validatedData.tableNumber,
+        validatedData.tableName,
         validatedData.floorNumber
       );
       

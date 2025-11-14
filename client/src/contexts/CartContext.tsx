@@ -8,8 +8,9 @@ const SEATING_STORAGE_KEY = 'restaurant-pos-seating';
 interface CartContextType {
   cart: Cart;
   tableNumber: string;
+  tableName: string;
   floorNumber: string;
-  setSeatingInfo: (table: string, floor: string, phoneNumber?: string) => Promise<void>;
+  setSeatingInfo: (table: string, tableNameValue: string, floor: string, phoneNumber?: string) => Promise<void>;
   addToCart: (item: Omit<CartItemWithDetails, 'id' | 'quantity'>) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
@@ -25,6 +26,7 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>({ items: [], total: 0, itemCount: 0 });
   const [tableNumber, setTableNumber] = useState<string>('');
+  const [tableName, setTableName] = useState<string>('');
   const [floorNumber, setFloorNumber] = useState<string>('');
 
   // Load cart from localStorage on mount
@@ -42,8 +44,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const savedSeating = localStorage.getItem(SEATING_STORAGE_KEY);
     if (savedSeating) {
       try {
-        const { table, floor } = JSON.parse(savedSeating);
+        const { table, tableName, floor } = JSON.parse(savedSeating);
         setTableNumber(table || '');
+        setTableName(tableName || '');
         setFloorNumber(floor || '');
       } catch (error) {
         console.error('Error loading seating:', error);
@@ -58,21 +61,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Save seating info to localStorage
   useEffect(() => {
-    if (tableNumber || floorNumber) {
+    if (tableNumber || tableName || floorNumber) {
       localStorage.setItem(SEATING_STORAGE_KEY, JSON.stringify({
         table: tableNumber,
+        tableName: tableName,
         floor: floorNumber
       }));
     }
-  }, [tableNumber, floorNumber]);
+  }, [tableNumber, tableName, floorNumber]);
 
-  const setSeatingInfo = async (table: string, floor: string, phoneNumber?: string) => {
+  const setSeatingInfo = async (table: string, tableNameValue: string, floor: string, phoneNumber?: string) => {
     // Store previous values for rollback in case of error
     const previousTable = tableNumber;
+    const previousTableName = tableName;
     const previousFloor = floorNumber;
     
     // Optimistically update local state
     setTableNumber(table);
+    setTableName(tableNameValue);
     setFloorNumber(floor);
     
     // If phoneNumber is provided, update database
@@ -80,12 +86,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         await apiRequest('PATCH', `/api/customers/${phoneNumber}/seating`, {
           tableNumber: table,
+          tableName: tableNameValue,
           floorNumber: floor,
         });
         // Success - localStorage will be updated by useEffect
       } catch (error) {
         // Rollback on error
         setTableNumber(previousTable);
+        setTableName(previousTableName);
         setFloorNumber(previousFloor);
         console.error('Failed to update seating information:', error);
         throw error; // Re-throw so caller can handle (e.g., show toast)
@@ -197,6 +205,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{
         cart,
         tableNumber,
+        tableName,
         floorNumber,
         setSeatingInfo,
         addToCart,
