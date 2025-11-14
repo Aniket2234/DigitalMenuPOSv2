@@ -64,8 +64,11 @@ async function consolidateCustomerOrders() {
 
     console.log(`Consolidating ${customersToConsolidate.length} customers with duplicate order documents`);
 
+    const bulkOps = [];
+    
     for (const [customerIdStr, orders] of customersToConsolidate) {
       const firstOrder = orders[0];
+      const orderIds = orders.map(o => o._id);
       
       const orderEntries = orders.map(order => ({
         _id: order._id,
@@ -84,6 +87,7 @@ async function consolidateCustomerOrders() {
       }));
 
       const consolidatedDoc = {
+        _id: new ObjectId(),
         customerId: firstOrder.customerId,
         customerName: firstOrder.customerName,
         customerPhone: firstOrder.customerPhone,
@@ -92,12 +96,25 @@ async function consolidateCustomerOrders() {
         updatedAt: new Date(),
       };
 
-      const orderIds = orders.map(o => o._id);
-      await ordersCollection.deleteMany({ _id: { $in: orderIds } });
+      bulkOps.push({
+        insertOne: {
+          document: consolidatedDoc
+        }
+      });
       
-      await ordersCollection.insertOne(consolidatedDoc as any);
+      bulkOps.push({
+        deleteMany: {
+          filter: { _id: { $in: orderIds } }
+        }
+      });
       
-      console.log(`Consolidated ${orders.length} orders for customer ${firstOrder.customerName} (${firstOrder.customerPhone})`);
+      console.log(`Queued consolidation of ${orders.length} orders for customer ${firstOrder.customerName} (${firstOrder.customerPhone})`);
+    }
+    
+    if (bulkOps.length > 0) {
+      console.log(`Executing ${bulkOps.length} bulk operations...`);
+      await ordersCollection.bulkWrite(bulkOps, { ordered: true });
+      console.log("✅ All bulk operations completed successfully");
     }
 
     console.log("Migration completed successfully!");

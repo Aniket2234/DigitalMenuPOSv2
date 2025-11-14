@@ -747,71 +747,83 @@ export class MongoStorage implements IStorage {
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    try {
-      const now = new Date();
-      const orderId = new ObjectId();
-      
-      const orderEntry: OrderEntry = {
-        _id: orderId,
-        items: insertOrder.items,
-        subtotal: insertOrder.subtotal,
-        tax: insertOrder.tax,
-        total: insertOrder.total,
-        status: insertOrder.status || 'pending',
-        paymentStatus: insertOrder.paymentStatus || 'pending',
-        paymentMethod: insertOrder.paymentMethod,
-        tableNumber: insertOrder.tableNumber,
-        floorNumber: insertOrder.floorNumber,
-        orderDate: now,
-        createdAt: now,
-        updatedAt: now,
-      };
+    const now = new Date();
+    const orderId = new ObjectId();
+    const customerId = new ObjectId(insertOrder.customerId);
+    
+    const orderEntry: OrderEntry = {
+      _id: orderId,
+      items: insertOrder.items,
+      subtotal: insertOrder.subtotal,
+      tax: insertOrder.tax,
+      total: insertOrder.total,
+      status: insertOrder.status || 'pending',
+      paymentStatus: insertOrder.paymentStatus || 'pending',
+      paymentMethod: insertOrder.paymentMethod,
+      tableNumber: insertOrder.tableNumber,
+      floorNumber: insertOrder.floorNumber,
+      orderDate: now,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      const customerId = new ObjectId(insertOrder.customerId);
-      
-      await this.ordersCollection.updateOne(
-        { customerId },
-        {
-          $setOnInsert: {
-            customerId,
-            customerName: insertOrder.customerName,
-            customerPhone: insertOrder.customerPhone,
-            createdAt: now,
+    const maxRetries = 3;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
+      try {
+        await this.ordersCollection.updateOne(
+          { customerId },
+          {
+            $setOnInsert: {
+              customerId,
+              customerName: insertOrder.customerName,
+              customerPhone: insertOrder.customerPhone,
+              createdAt: now,
+            },
+            $set: {
+              updatedAt: now,
+            },
+            $push: {
+              orders: orderEntry,
+            },
           },
-          $set: {
-            updatedAt: now,
-          },
-          $push: {
-            orders: orderEntry,
-          },
-        },
-        { upsert: true }
-      );
-      
-      await this.incrementVisitCount(insertOrder.customerPhone);
-      
-      return {
-        _id: orderId,
-        customerId,
-        customerName: insertOrder.customerName,
-        customerPhone: insertOrder.customerPhone,
-        items: insertOrder.items,
-        subtotal: insertOrder.subtotal,
-        tax: insertOrder.tax,
-        total: insertOrder.total,
-        status: insertOrder.status || 'pending',
-        paymentStatus: insertOrder.paymentStatus || 'pending',
-        paymentMethod: insertOrder.paymentMethod,
-        tableNumber: insertOrder.tableNumber,
-        floorNumber: insertOrder.floorNumber,
-        orderDate: now,
-        createdAt: now,
-        updatedAt: now,
-      } as Order;
-    } catch (error) {
-      console.error("Error creating order:", error);
-      throw error;
+          { upsert: true }
+        );
+        
+        await this.incrementVisitCount(insertOrder.customerPhone);
+        
+        return {
+          _id: orderId,
+          customerId,
+          customerName: insertOrder.customerName,
+          customerPhone: insertOrder.customerPhone,
+          items: insertOrder.items,
+          subtotal: insertOrder.subtotal,
+          tax: insertOrder.tax,
+          total: insertOrder.total,
+          status: insertOrder.status || 'pending',
+          paymentStatus: insertOrder.paymentStatus || 'pending',
+          paymentMethod: insertOrder.paymentMethod,
+          tableNumber: insertOrder.tableNumber,
+          floorNumber: insertOrder.floorNumber,
+          orderDate: now,
+          createdAt: now,
+          updatedAt: now,
+        } as Order;
+      } catch (error: any) {
+        if (error.code === 11000 && attempt < maxRetries - 1) {
+          console.log(`Duplicate key conflict on attempt ${attempt + 1}, retrying...`);
+          attempt++;
+          await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+          continue;
+        }
+        console.error("Error creating order:", error);
+        throw error;
+      }
     }
+    
+    throw new Error("Failed to create order after maximum retries");
   }
 
   async getOrdersByCustomer(customerId: string): Promise<Order[]> {
