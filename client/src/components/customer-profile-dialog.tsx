@@ -2,14 +2,26 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useCustomer } from "@/contexts/CustomerContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Order } from "@shared/schema";
-import { User, Phone, ShoppingBag, Loader2, ChevronDown, ChevronRight, TrendingUp, Award, Calendar, DollarSign, Package } from "lucide-react";
+import { User, Phone, ShoppingBag, Loader2, ChevronDown, ChevronRight, TrendingUp, Award, Calendar, DollarSign, Package, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface CustomerProfileDialogProps {
   open: boolean;
@@ -100,62 +112,167 @@ function calculateStats(orders: Order[]): CustomerStats {
   };
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ 
+  order, 
+  customerId, 
+  onDelete 
+}: { 
+  order: Order;
+  customerId: string;
+  onDelete: (orderId: string) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    onDelete(order._id.toString());
+    setShowDeleteConfirm(false);
+  };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div
-        className="border rounded-md p-3 space-y-2 hover-elevate transition-all"
-        data-testid={`card-order-${order._id.toString()}`}
-      >
-        <CollapsibleTrigger asChild>
-          <div className="flex items-center justify-between cursor-pointer active-elevate-2 p-2 -m-2 rounded-md">
-            <div className="flex items-center gap-2 flex-wrap">
-              {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
-              <span className="font-medium">Order #{order._id.toString().slice(-6)}</span>
-              <Badge className={getStatusColor(order.status)} variant="default">
-                {order.status}
-              </Badge>
-              <Badge className={getPaymentColor(order.paymentStatus)} variant="default">
-                {order.paymentStatus}
-              </Badge>
+    <>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div
+          className="border rounded-md p-3 space-y-2 hover-elevate transition-all"
+          data-testid={`card-order-${order._id.toString()}`}
+        >
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between cursor-pointer active-elevate-2 p-2 -m-2 rounded-md">
+              <div className="flex items-center gap-2 flex-wrap">
+                {isOpen ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="font-medium">Order #{order._id.toString().slice(-6)}</span>
+                <Badge className={getStatusColor(order.status)} variant="default">
+                  {order.status}
+                </Badge>
+                <Badge className={getPaymentColor(order.paymentStatus)} variant="default">
+                  {order.paymentStatus}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold">₹{order.total.toFixed(2)}</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleDelete}
+                  data-testid={`button-delete-order-${order._id.toString()}`}
+                  className="text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <span className="font-semibold">₹{order.total.toFixed(2)}</span>
+          </CollapsibleTrigger>
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(order.orderDate), "MMM dd, yyyy 'at' h:mm a")}
           </div>
-        </CollapsibleTrigger>
-        <div className="text-sm text-muted-foreground">
-          {format(new Date(order.orderDate), "MMM dd, yyyy 'at' h:mm a")}
+          <CollapsibleContent>
+            <div className="text-sm pt-2">
+              <span className="font-medium">{order.items.length} item{order.items.length > 1 ? 's' : ''}</span>
+              <div className="mt-1 space-y-1">
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between text-muted-foreground">
+                    <span>• {item.menuItemName} x {item.quantity}</span>
+                    <span>₹{item.total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleContent>
         </div>
-        <CollapsibleContent>
-          <div className="text-sm pt-2">
-            <span className="font-medium">{order.items.length} item{order.items.length > 1 ? 's' : ''}</span>
-            <div className="mt-1 space-y-1">
-              {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-muted-foreground">
-                  <span>• {item.menuItemName} x {item.quantity}</span>
-                  <span>₹{item.total.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CollapsibleContent>
-      </div>
-    </Collapsible>
+      </Collapsible>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this order from your history? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              data-testid="button-confirm-delete"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
 export function CustomerProfileDialog({ open, onOpenChange }: CustomerProfileDialogProps) {
   const { customer } = useCustomer();
+  const { toast } = useToast();
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/customer", customer?._id?.toString()],
     enabled: !!customer?._id && open,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async ({ orderId }: { orderId: string }) => {
+      await apiRequest("DELETE", `/api/customers/${customer?._id?.toString()}/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/customer", customer?._id?.toString()] });
+      toast({
+        title: "Order Deleted",
+        description: "Order has been removed from your history",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/customers/${customer?._id?.toString()}/orders`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/customer", customer?._id?.toString()] });
+      toast({
+        title: "All Orders Deleted",
+        description: "All orders have been removed from your history",
+      });
+      setShowDeleteAllConfirm(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete all orders",
+        variant: "destructive",
+      });
+      setShowDeleteAllConfirm(false);
+    },
+  });
+
+  const handleDeleteOrder = (orderId: string) => {
+    deleteMutation.mutate({ orderId });
+  };
+
+  const handleDeleteAll = () => {
+    deleteAllMutation.mutate();
+  };
 
   const stats = useMemo(() => calculateStats(orders || []), [orders]);
 
@@ -306,15 +423,43 @@ export function CustomerProfileDialog({ open, onOpenChange }: CustomerProfileDia
                 {/* Order History */}
                 <Card className="border-2">
                   <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      Order History
-                    </CardTitle>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Package className="h-5 w-5" />
+                        Order History
+                      </CardTitle>
+                      {orders && orders.length > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowDeleteAllConfirm(true)}
+                          disabled={deleteAllMutation.isPending}
+                          data-testid="button-delete-all-orders"
+                        >
+                          {deleteAllMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete All
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                       {orders?.map((order) => (
-                        <OrderCard key={order._id.toString()} order={order} />
+                        <OrderCard 
+                          key={order._id.toString()} 
+                          order={order} 
+                          customerId={customer._id?.toString() || ""}
+                          onDelete={handleDeleteOrder}
+                        />
                       ))}
                     </div>
                   </CardContent>
@@ -330,6 +475,27 @@ export function CustomerProfileDialog({ open, onOpenChange }: CustomerProfileDia
           </div>
         </ScrollArea>
       </DialogContent>
+
+      <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Orders</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all orders from your history? This will remove {orders?.length || 0} order{orders?.length !== 1 ? 's' : ''} permanently. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-all">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAll}
+              data-testid="button-confirm-delete-all"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
