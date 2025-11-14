@@ -339,7 +339,9 @@ export default function Menu() {
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchesCategory && matchesFilter && matchesSearch;
+      const matchesFavorites = !showFavoritesOnly || isFavorite(item.id);
+
+      return matchesCategory && matchesFilter && matchesSearch && matchesFavorites;
     });
   }, [
     menuItems,
@@ -347,6 +349,8 @@ export default function Menu() {
     filterType,
     searchQuery,
     categoryIdToDbCategory,
+    showFavoritesOnly,
+    isFavorite,
   ]);
 
   const currentFilter = filterTypes.find((f) => f.id === filterType);
@@ -1081,6 +1085,8 @@ export default function Menu() {
             onIncrement={handleIncrement}
             onDecrement={handleDecrement}
             onNotesClick={handleNotesClick}
+            onFavoriteToggle={toggleFavorite}
+            isFavorite={isFavorite(item.id)}
           />
         </motion.div>
       ))}
