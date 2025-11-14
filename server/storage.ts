@@ -778,10 +778,11 @@ export class MongoStorage implements IStorage {
         updatedAt: now 
       };
       
-      // Reset table and floor to "NA" when logging out
+      // Reset table, floor, and currentOrder when logging out
       if (loginStatus === 'loggedout') {
         updateFields.tableNumber = 'NA';
         updateFields.floorNumber = 'NA';
+        updateFields.currentOrder = null;
       }
       
       const updatedCustomer = await this.customersCollection.findOneAndUpdate(
@@ -914,6 +915,17 @@ export class MongoStorage implements IStorage {
           { upsert: true }
         );
         
+        // Update the customer's currentOrder field
+        await this.customersCollection.updateOne(
+          { _id: customerId },
+          {
+            $set: {
+              currentOrder: orderEntry,
+              updatedAt: now,
+            },
+          }
+        );
+        
         await this.incrementVisitCount(insertOrder.customerPhone);
         
         return {
@@ -1029,16 +1041,39 @@ export class MongoStorage implements IStorage {
   async updateOrderStatus(id: string, status: Order['status']): Promise<void> {
     try {
       const orderId = new ObjectId(id);
+      const now = new Date();
+      
+      // Update the order status in the orders collection
       await this.ordersCollection.updateOne(
         { "orders._id": orderId },
         {
           $set: {
             "orders.$.status": status,
-            "orders.$.updatedAt": new Date(),
-            updatedAt: new Date(),
+            "orders.$.updatedAt": now,
+            updatedAt: now,
           },
         }
       );
+      
+      // If order is completed or cancelled, clear currentOrder from customer (only if it's the current order)
+      if (status === 'completed' || status === 'cancelled') {
+        const orderHistory = await this.ordersCollection.findOne({ "orders._id": orderId });
+        if (orderHistory) {
+          // Only clear currentOrder if this order is the customer's current order
+          await this.customersCollection.updateOne(
+            { 
+              _id: orderHistory.customerId,
+              "currentOrder._id": orderId
+            },
+            {
+              $set: {
+                currentOrder: null,
+                updatedAt: now,
+              },
+            }
+          );
+        }
+      }
     } catch (error) {
       console.error("Error updating order status:", error);
       throw error;
@@ -1048,18 +1083,40 @@ export class MongoStorage implements IStorage {
   async updatePaymentStatus(id: string, paymentStatus: Order['paymentStatus'], paymentMethod?: string): Promise<void> {
     try {
       const orderId = new ObjectId(id);
+      const now = new Date();
       const update: any = {
         "orders.$.paymentStatus": paymentStatus,
-        "orders.$.updatedAt": new Date(),
-        updatedAt: new Date(),
+        "orders.$.updatedAt": now,
+        updatedAt: now,
       };
       if (paymentMethod) {
         update["orders.$.paymentMethod"] = paymentMethod;
       }
+      
       await this.ordersCollection.updateOne(
         { "orders._id": orderId },
         { $set: update }
       );
+      
+      // If payment is successful, clear currentOrder from customer (only if it's the current order)
+      if (paymentStatus === 'paid') {
+        const orderHistory = await this.ordersCollection.findOne({ "orders._id": orderId });
+        if (orderHistory) {
+          // Only clear currentOrder if this order is the customer's current order
+          await this.customersCollection.updateOne(
+            { 
+              _id: orderHistory.customerId,
+              "currentOrder._id": orderId
+            },
+            {
+              $set: {
+                currentOrder: null,
+                updatedAt: now,
+              },
+            }
+          );
+        }
+      }
     } catch (error) {
       console.error("Error updating payment status:", error);
       throw error;
@@ -1070,7 +1127,9 @@ export class MongoStorage implements IStorage {
     try {
       const customerObjectId = new ObjectId(customerId);
       const orderObjectId = new ObjectId(orderId);
+      const now = new Date();
       
+      // Delete the order from history
       await this.ordersCollection.updateOne(
         { customerId: customerObjectId },
         {
@@ -1078,7 +1137,21 @@ export class MongoStorage implements IStorage {
             orders: { _id: orderObjectId }
           },
           $set: {
-            updatedAt: new Date()
+            updatedAt: now
+          }
+        }
+      );
+      
+      // Clear currentOrder if the deleted order is the current one
+      await this.customersCollection.updateOne(
+        { 
+          _id: customerObjectId,
+          "currentOrder._id": orderObjectId
+        },
+        {
+          $set: {
+            currentOrder: null,
+            updatedAt: now
           }
         }
       );
@@ -1091,13 +1164,26 @@ export class MongoStorage implements IStorage {
   async deleteAllOrdersFromHistory(customerId: string): Promise<void> {
     try {
       const customerObjectId = new ObjectId(customerId);
+      const now = new Date();
       
+      // Delete all orders from history
       await this.ordersCollection.updateOne(
         { customerId: customerObjectId },
         {
           $set: {
             orders: [],
-            updatedAt: new Date()
+            updatedAt: now
+          }
+        }
+      );
+      
+      // Also clear currentOrder since all orders are being deleted
+      await this.customersCollection.updateOne(
+        { _id: customerObjectId },
+        {
+          $set: {
+            currentOrder: null,
+            updatedAt: now
           }
         }
       );
