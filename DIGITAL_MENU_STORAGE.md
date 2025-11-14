@@ -146,17 +146,21 @@ MongoDB Database Structure
     │   │
     │   ├── customers
     │   │   └── Document Fields:
-    │   │       ├── _id (ObjectId)
-    │   │       ├── name (string)
-    │   │       ├── phoneNumber (string - 10 digits)
-    │   │       ├── visitCount (number)
-    │   │       ├── firstVisit (Date)
-    │   │       ├── lastVisit (Date)
+    │   │       ├── _id (ObjectId - unique identifier)
+    │   │       ├── name (string - customer name)
+    │   │       ├── phoneNumber (string - 10 digits, unique)
+    │   │       ├── visitCount (number - total visits to restaurant)
+    │   │       ├── favorites (array of strings - menu item IDs)
+    │   │       ├── firstVisit (Date - timestamp of first registration)
+    │   │       ├── lastVisit (Date - timestamp of most recent visit)
     │   │       ├── loginStatus (string: 'loggedin' | 'loggedout') 🔐
-    │   │       ├── tableNumber (string - "NA" when logged out) 📍 NEW
-    │   │       ├── floorNumber (string - "NA" when logged out) 🏢 NEW
-    │   │       ├── createdAt (Date)
-    │   │       └── updatedAt (Date)
+    │   │       ├── tableNumber (string - "NA" when logged out) 📍
+    │   │       ├── floorNumber (string - "NA" when logged out) 🏢
+    │   │       ├── tableStatus (string: 'free' | 'occupied' | 'preparing' | 'ready' | 'served') 🍽️
+    │   │       ├── currentOrder (OrderEntry object or null - active order) 📋
+    │   │       ├── orderHistory (array of OrderEntry - past orders) 📜
+    │   │       ├── createdAt (Date - document creation timestamp)
+    │   │       └── updatedAt (Date - last modification timestamp)
     │   │
     │   ├── menuItems
     │   │   └── Document Fields:
@@ -637,6 +641,222 @@ restaurant_pos (Database)
 |------|------------|--------|-------------|
 | 2025-11-14 | customers | Added tableNumber | Track customer's current table location<br>- Type: String<br>- Default: `"NA"` on creation<br>- Auto-reset to `"NA"` on logout<br>- Updated via `updateCustomerTableInfo()` method |
 | 2025-11-14 | customers | Added floorNumber | Track customer's current floor location<br>- Type: String<br>- Default: `"NA"` on creation<br>- Auto-reset to `"NA"` on logout<br>- Updated via `updateCustomerTableInfo()` method |
+| 2025-11-14 | customers | Added tableStatus | Track table/order status workflow<br>- Type: String enum<br>- Default: `"free"` on creation<br>- Values: free, occupied, preparing, ready, served |
+| 2025-11-14 | customers | Added favorites | Store customer's favorite menu items<br>- Type: Array of strings<br>- Default: `[]` on creation |
+| 2025-11-14 | customers | Added currentOrder | Store active order reference<br>- Type: OrderEntry object or null<br>- Default: `null` on creation |
+| 2025-11-14 | customers | Added orderHistory | Store past orders<br>- Type: Array of OrderEntry objects<br>- Default: `[]` on creation |
+
+---
+
+## COMPLETE FIELD DOCUMENTATION
+
+### Customer Fields Explained
+
+#### 1. Basic Information Fields
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `_id` | ObjectId | Unique MongoDB identifier for the customer | `"507f191e810c19729de860ea"` |
+| `name` | string | Customer's full name | `"Rajesh Kumar"` |
+| `phoneNumber` | string | 10-digit phone number (unique identifier) | `"9876543210"` |
+| `createdAt` | Date | Timestamp when customer first registered | `"2025-01-15T10:30:00.000Z"` |
+| `updatedAt` | Date | Timestamp of last update to customer record | `"2025-11-14T15:00:00.000Z"` |
+
+#### 2. Visit Tracking Fields
+
+| Field | Type | Description | Default | Example |
+|-------|------|-------------|---------|---------|
+| `visitCount` | number | Total number of restaurant visits | `1` | `5` |
+| `firstVisit` | Date | Timestamp of first visit/registration | current timestamp | `"2025-01-15T10:30:00.000Z"` |
+| `lastVisit` | Date | Timestamp of most recent visit | current timestamp | `"2025-11-14T12:00:00.000Z"` |
+
+#### 3. Session & Location Fields
+
+| Field | Type | Allowed Values | Default | Description |
+|-------|------|----------------|---------|-------------|
+| `loginStatus` | string enum | `"loggedin"` \| `"loggedout"` | `"loggedin"` | Current login session status |
+| `tableNumber` | string | Any string | `"NA"` | Current table assignment (e.g., "T-12", "Table 5") |
+| `floorNumber` | string | Any string | `"NA"` | Current floor location (e.g., "Ground Floor", "1st Floor") |
+
+**Login Status Behavior:**
+- **`"loggedin"`**: Customer has an active session
+- **`"loggedout"`**: Customer has logged out (tableNumber and floorNumber auto-reset to "NA")
+
+#### 4. Table Status Field 🍽️
+
+| Field | Type | Allowed Values | Default | Description |
+|-------|------|----------------|---------|-------------|
+| `tableStatus` | string enum | See below | `"free"` | Current status of customer's table/order workflow |
+
+**Table Status Values:**
+
+| Status | Meaning | When to Use | Visual Indicator |
+|--------|---------|-------------|------------------|
+| `"free"` | Table is available, no active order | Default state, after order completion | 🟢 Green |
+| `"occupied"` | Customer seated, browsing menu | After customer login, before order placement | 🟡 Yellow |
+| `"preparing"` | Order placed, kitchen is preparing | After order confirmation | 🟠 Orange |
+| `"ready"` | Order ready for serving | Kitchen completed preparation | 🔵 Blue |
+| `"served"` | Food delivered to table | After waiter serves the order | 🟣 Purple |
+
+**Table Status Workflow:**
+```
+free → occupied (customer logs in)
+      ↓
+occupied → preparing (order placed and confirmed)
+      ↓
+preparing → ready (kitchen completes order)
+      ↓
+ready → served (waiter delivers food)
+      ↓
+served → free (customer logs out or payment completed)
+```
+
+#### 5. Favorites & Preferences
+
+| Field | Type | Description | Default | Example |
+|-------|------|-------------|---------|---------|
+| `favorites` | array of strings | Menu item IDs that customer has favorited | `[]` | `["item123", "item456", "item789"]` |
+
+**Usage:**
+- Stores menu item IDs (not _id, but the custom `id` field from menuItems)
+- Allows quick access to customer's preferred dishes
+- Can be used for personalized recommendations
+
+#### 6. Order Fields
+
+| Field | Type | Description | Default | Example |
+|-------|------|-------------|---------|---------|
+| `currentOrder` | OrderEntry \| null | Active order in progress | `null` | See OrderEntry structure below |
+| `orderHistory` | array of OrderEntry | All past completed orders | `[]` | Array of OrderEntry objects |
+
+---
+
+### Order Fields Explained (digital_menu_customer_orders collection)
+
+#### Order Document Structure
+
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `_id` | ObjectId | Yes | Unique order identifier | `"507f1f77bcf86cd799439011"` |
+| `customerId` | ObjectId | Yes | Reference to customers._id | `"507f191e810c19729de860ea"` |
+| `customerName` | string | Yes | Customer name (denormalized) | `"Rajesh Kumar"` |
+| `customerPhone` | string | Yes | Customer phone (denormalized) | `"9876543210"` |
+| `items` | array | Yes | Array of OrderItem objects | See OrderItem below |
+| `subtotal` | number | Yes | Sum of all item totals (before tax) | `880` |
+| `tax` | number | Yes | Tax amount (10% of subtotal) | `88` |
+| `total` | number | Yes | Final amount (subtotal + tax) | `968` |
+| `status` | string enum | Yes | Order processing status | `"pending"` |
+| `paymentStatus` | string enum | Yes | Payment status | `"pending"` |
+| `paymentMethod` | string | Optional | Payment method used | `"Cash"`, `"UPI"` |
+| `tableNumber` | string | Optional | Table where order was placed | `"T-12"` |
+| `floorNumber` | string | Optional | Floor where table is located | `"Ground Floor"` |
+| `orderDate` | Date | Yes | When order was placed (IST) | `"2025-11-14T11:30:00.000Z"` |
+| `createdAt` | Date | Yes | Document creation timestamp | `"2025-11-14T11:30:00.000Z"` |
+| `updatedAt` | Date | Yes | Last update timestamp | `"2025-11-14T11:30:00.000Z"` |
+
+#### OrderItem Structure (items array)
+
+| Field | Type | Required | Description | Example |
+|-------|------|----------|-------------|---------|
+| `menuItemId` | string | Yes | Menu item ID reference | `"item123"` |
+| `menuItemName` | string | Yes | Menu item name (denormalized) | `"Japanese Katsu Curry Chicken"` |
+| `quantity` | number | Yes | Number of servings | `2` |
+| `price` | number | Yes | Price per item | `300` |
+| `total` | number | Yes | quantity × price | `600` |
+| `spiceLevel` | string enum | Optional | Customer's spice preference | `"regular"` |
+| `notes` | string | Optional | Special instructions | `"Extra sauce on the side"` |
+
+#### Order Status Values
+
+| Status | Meaning | When to Use | Typical Duration |
+|--------|---------|-------------|------------------|
+| `"pending"` | Order placed, awaiting confirmation | Default when order created | 1-2 minutes |
+| `"confirmed"` | Order confirmed by restaurant | After staff review | N/A |
+| `"preparing"` | Kitchen is cooking the order | During food preparation | 15-30 minutes |
+| `"completed"` | Order fulfilled and delivered | After customer receives food | Final state |
+| `"cancelled"` | Order was cancelled | By customer or staff | Final state |
+
+**Order Status Workflow:**
+```
+pending → confirmed → preparing → completed
+   ↓                                   ↑
+   └──────────> cancelled ─────────────┘
+```
+
+#### Payment Status Values
+
+| Status | Meaning | When to Use |
+|--------|---------|-------------|
+| `"pending"` | Payment not yet received | Default state, awaiting payment |
+| `"paid"` | Payment successfully completed | After payment confirmation |
+| `"failed"` | Payment attempt failed | If payment processing fails |
+
+#### Spice Level Values
+
+| Level | Meaning | Description |
+|-------|---------|-------------|
+| `"no-spicy"` | No spice at all | For customers who cannot handle spice |
+| `"less-spicy"` | Mild spice | Light amount of spices |
+| `"regular"` | Normal spice level | Standard restaurant preparation |
+| `"more-spicy"` | Extra spicy | For customers who prefer very spicy food |
+
+---
+
+### Complete Customer Document Example
+
+```javascript
+{
+  "_id": "507f191e810c19729de860ea",
+  "name": "Rajesh Kumar",
+  "phoneNumber": "9876543210",
+  "visitCount": 5,
+  "favorites": ["item123", "item456"],
+  "firstVisit": "2025-01-15T10:30:00.000Z",
+  "lastVisit": "2025-11-14T12:00:00.000Z",
+  "loginStatus": "loggedin",
+  "tableNumber": "T-12",
+  "floorNumber": "Ground Floor",
+  "tableStatus": "preparing",
+  "currentOrder": {
+    "_id": "507f1f77bcf86cd799439011",
+    "items": [
+      {
+        "menuItemId": "item123",
+        "menuItemName": "Japanese Katsu Curry Chicken",
+        "quantity": 2,
+        "price": 300,
+        "total": 600,
+        "spiceLevel": "regular",
+        "notes": "Extra sauce on the side"
+      }
+    ],
+    "subtotal": 600,
+    "tax": 60,
+    "total": 660,
+    "status": "preparing",
+    "paymentStatus": "pending",
+    "orderDate": "2025-11-14T11:30:00.000Z",
+    "createdAt": "2025-11-14T11:30:00.000Z",
+    "updatedAt": "2025-11-14T11:35:00.000Z"
+  },
+  "orderHistory": [
+    {
+      "_id": "507f1f77bcf86cd799439022",
+      "items": [...],
+      "subtotal": 450,
+      "tax": 45,
+      "total": 495,
+      "status": "completed",
+      "paymentStatus": "paid",
+      "orderDate": "2025-11-10T14:00:00.000Z",
+      "createdAt": "2025-11-10T14:00:00.000Z",
+      "updatedAt": "2025-11-10T14:45:00.000Z"
+    }
+  ],
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "updatedAt": "2025-11-14T12:00:00.000Z"
+}
+```
 
 ---
 
