@@ -371,6 +371,9 @@ export class MongoStorage implements IStorage {
   private customersCollection: Collection<Customer>;
   private ordersCollection: Collection<Order>;
   private restaurantId: ObjectId;
+  
+  // Collection name for digital menu orders (separate from POS software orders)
+  private readonly DIGITAL_MENU_ORDERS_COLLECTION = "digital_menu_customer_orders";
 
   // Define available categories - these match menu.tsx categories
   private readonly categories = [
@@ -399,7 +402,7 @@ export class MongoStorage implements IStorage {
 
   constructor(connectionString: string) {
     this.client = new MongoClient(connectionString);
-    this.db = this.client.db("restaurant_pos");
+    this.db = this.client.db("mingsdb");
     this.categoryCollections = new Map();
 
     // Initialize collections for each category with correct collection names
@@ -434,7 +437,8 @@ export class MongoStorage implements IStorage {
     this.cartItemsCollection = this.db.collection("cartitems");
     this.usersCollection = this.db.collection("users");
     this.customersCollection = this.db.collection("customers");
-    this.ordersCollection = this.db.collection("orders");
+    // Use separate collection for digital menu orders to avoid conflicts with POS software
+    this.ordersCollection = this.db.collection(this.DIGITAL_MENU_ORDERS_COLLECTION);
     this.restaurantId = new ObjectId("6874cff2a880250859286de6");
   }
 
