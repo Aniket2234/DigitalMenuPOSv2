@@ -57,6 +57,32 @@ export interface OrderItem {
   notes?: string;
 }
 
+export interface OrderEntry {
+  _id: ObjectId;
+  items: OrderItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  status: 'pending' | 'confirmed' | 'preparing' | 'completed' | 'cancelled';
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentMethod?: string;
+  tableNumber?: string;
+  floorNumber?: string;
+  orderDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerOrderHistory {
+  _id: ObjectId;
+  customerId: ObjectId;
+  customerName: string;
+  customerPhone: string;
+  orders: OrderEntry[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Order {
   _id: ObjectId;
   customerId: ObjectId;

@@ -332,7 +332,7 @@
 // const connectionString = "mongodb+srv://airavatatechnologiesprojects:8tJ6v8oTyQE1AwLV@mingsdb.mmjpnwc.mongodb.net/?retryWrites=true&w=majority&appName=MINGSDB";
 // export const storage = new MongoStorage(connectionString);
 import { MongoClient, Db, Collection, ObjectId } from "mongodb";
-import { type User, type InsertUser, type MenuItem, type InsertMenuItem, type CartItem, type InsertCartItem, type Customer, type InsertCustomer, type Order, type InsertOrder } from "@shared/schema";
+import { type User, type InsertUser, type MenuItem, type InsertMenuItem, type CartItem, type InsertCartItem, type Customer, type InsertCustomer, type Order, type InsertOrder, type OrderEntry, type CustomerOrderHistory } from "@shared/schema";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -749,21 +749,64 @@ export class MongoStorage implements IStorage {
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     try {
       const now = new Date();
-      const order: Omit<Order, '_id'> = {
-        ...insertOrder,
-        customerId: new ObjectId(insertOrder.customerId),
+      const orderId = new ObjectId();
+      
+      const orderEntry: OrderEntry = {
+        _id: orderId,
+        items: insertOrder.items,
+        subtotal: insertOrder.subtotal,
+        tax: insertOrder.tax,
+        total: insertOrder.total,
+        status: insertOrder.status || 'pending',
+        paymentStatus: insertOrder.paymentStatus || 'pending',
+        paymentMethod: insertOrder.paymentMethod,
+        tableNumber: insertOrder.tableNumber,
+        floorNumber: insertOrder.floorNumber,
         orderDate: now,
         createdAt: now,
         updatedAt: now,
       };
 
-      const result = await this.ordersCollection.insertOne(order as Order);
+      const customerId = new ObjectId(insertOrder.customerId);
+      
+      await this.ordersCollection.updateOne(
+        { customerId },
+        {
+          $setOnInsert: {
+            customerId,
+            customerName: insertOrder.customerName,
+            customerPhone: insertOrder.customerPhone,
+            createdAt: now,
+          },
+          $set: {
+            updatedAt: now,
+          },
+          $push: {
+            orders: orderEntry,
+          },
+        },
+        { upsert: true }
+      );
       
       await this.incrementVisitCount(insertOrder.customerPhone);
       
       return {
-        _id: result.insertedId,
-        ...order,
+        _id: orderId,
+        customerId,
+        customerName: insertOrder.customerName,
+        customerPhone: insertOrder.customerPhone,
+        items: insertOrder.items,
+        subtotal: insertOrder.subtotal,
+        tax: insertOrder.tax,
+        total: insertOrder.total,
+        status: insertOrder.status || 'pending',
+        paymentStatus: insertOrder.paymentStatus || 'pending',
+        paymentMethod: insertOrder.paymentMethod,
+        tableNumber: insertOrder.tableNumber,
+        floorNumber: insertOrder.floorNumber,
+        orderDate: now,
+        createdAt: now,
+        updatedAt: now,
       } as Order;
     } catch (error) {
       console.error("Error creating order:", error);
@@ -773,11 +816,32 @@ export class MongoStorage implements IStorage {
 
   async getOrdersByCustomer(customerId: string): Promise<Order[]> {
     try {
-      const orders = await this.ordersCollection
-        .find({ customerId: new ObjectId(customerId) })
-        .sort({ orderDate: -1 })
-        .toArray();
-      return orders;
+      const customerHistory = await this.ordersCollection.findOne({
+        customerId: new ObjectId(customerId),
+      }) as CustomerOrderHistory | null;
+      
+      if (!customerHistory || !customerHistory.orders) {
+        return [];
+      }
+      
+      return customerHistory.orders.map((orderEntry) => ({
+        _id: orderEntry._id,
+        customerId: customerHistory.customerId,
+        customerName: customerHistory.customerName,
+        customerPhone: customerHistory.customerPhone,
+        items: orderEntry.items,
+        subtotal: orderEntry.subtotal,
+        tax: orderEntry.tax,
+        total: orderEntry.total,
+        status: orderEntry.status,
+        paymentStatus: orderEntry.paymentStatus,
+        paymentMethod: orderEntry.paymentMethod,
+        tableNumber: orderEntry.tableNumber,
+        floorNumber: orderEntry.floorNumber,
+        orderDate: orderEntry.orderDate,
+        createdAt: orderEntry.createdAt,
+        updatedAt: orderEntry.updatedAt,
+      })).sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
     } catch (error) {
       console.error("Error getting orders by customer:", error);
       return [];
@@ -786,8 +850,41 @@ export class MongoStorage implements IStorage {
 
   async getOrder(id: string): Promise<Order | undefined> {
     try {
-      const order = await this.ordersCollection.findOne({ _id: new ObjectId(id) });
-      return order || undefined;
+      const orderId = new ObjectId(id);
+      const customerHistory = await this.ordersCollection.findOne({
+        "orders._id": orderId,
+      }) as CustomerOrderHistory | null;
+      
+      if (!customerHistory) {
+        return undefined;
+      }
+      
+      const orderEntry = customerHistory.orders.find(
+        (o) => o._id.toString() === orderId.toString()
+      );
+      
+      if (!orderEntry) {
+        return undefined;
+      }
+      
+      return {
+        _id: orderEntry._id,
+        customerId: customerHistory.customerId,
+        customerName: customerHistory.customerName,
+        customerPhone: customerHistory.customerPhone,
+        items: orderEntry.items,
+        subtotal: orderEntry.subtotal,
+        tax: orderEntry.tax,
+        total: orderEntry.total,
+        status: orderEntry.status,
+        paymentStatus: orderEntry.paymentStatus,
+        paymentMethod: orderEntry.paymentMethod,
+        tableNumber: orderEntry.tableNumber,
+        floorNumber: orderEntry.floorNumber,
+        orderDate: orderEntry.orderDate,
+        createdAt: orderEntry.createdAt,
+        updatedAt: orderEntry.updatedAt,
+      };
     } catch (error) {
       console.error("Error getting order:", error);
       return undefined;
@@ -796,9 +893,16 @@ export class MongoStorage implements IStorage {
 
   async updateOrderStatus(id: string, status: Order['status']): Promise<void> {
     try {
+      const orderId = new ObjectId(id);
       await this.ordersCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { status, updatedAt: new Date() } }
+        { "orders._id": orderId },
+        {
+          $set: {
+            "orders.$.status": status,
+            "orders.$.updatedAt": new Date(),
+            updatedAt: new Date(),
+          },
+        }
       );
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -808,15 +912,17 @@ export class MongoStorage implements IStorage {
 
   async updatePaymentStatus(id: string, paymentStatus: Order['paymentStatus'], paymentMethod?: string): Promise<void> {
     try {
+      const orderId = new ObjectId(id);
       const update: any = {
-        paymentStatus,
-        updatedAt: new Date()
+        "orders.$.paymentStatus": paymentStatus,
+        "orders.$.updatedAt": new Date(),
+        updatedAt: new Date(),
       };
       if (paymentMethod) {
-        update.paymentMethod = paymentMethod;
+        update["orders.$.paymentMethod"] = paymentMethod;
       }
       await this.ordersCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { "orders._id": orderId },
         { $set: update }
       );
     } catch (error) {
