@@ -1,0 +1,203 @@
+chunk-RPCDYKBN.js?v=70bed4ca:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+media-preloader.tsx:50 Video preload failed for /vedio/Black Elegant Wedding Menu.mp4: Error: Timeout
+    at media-preloader.tsx:31:53
+preloadVideo @ media-preloader.tsx:50
+media-preloader.tsx:50 Video preload failed for /vedio/Black Elegant Wedding Menu.mp4: Error: Timeout
+    at media-preloader.tsx:31:53
+preloadVideo @ media-preloader.tsx:50
+useWelcomeAudio.ts:148 Failed to load audio from /Welcome.mp3: Error: Load timeout
+    at useWelcomeAudio.ts:116:53
+setupAudioGlobal @ useWelcomeAudio.ts:148
+media-preloader.tsx:36 Video metadata loaded from: /vedio/Black Elegant Wedding Menu.mp4
+media-preloader.tsx:36 Video metadata loaded from: ./vedio/Black Elegant Wedding Menu.mp4
+media-preloader.tsx:36 Video metadata loaded from: /vedio/Black Elegant Wedding Menu.mp4
+media-preloader.tsx:36 Video metadata loaded from: /vedio/Black Elegant Wedding Menu.mp4
+media-preloader.tsx:36 Video metadata loaded from: ./vedio/Black Elegant Wedding Menu.mp4
+useWelcomeAudio.ts:144 Audio ready from source: ./Welcome.mp3
+useWelcomeAudio.ts:168 Audio ready, waiting for user interaction...
+media-preloader.tsx:36 Video metadata loaded from: /vedio/Black Elegant Wedding Menu.mp4
+useWelcomeAudio.ts:79 Welcome audio played successfully
+media-preloader.tsx:36 Video metadata loaded from: /vedio/Black Elegant Wedding Menu.mp4
+media-preloader.tsx:36 Video metadata loaded from: /vedio/Black Elegant Wedding Menu.mp4
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+seating:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
+CartContext.tsx:90 Failed to update seating information: Error: 500: {"message":"Failed to update seating information"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async setSeatingInfo (CartContext.tsx:81:9)
+    at async updateSeating (menu.tsx:189:11)
+setSeatingInfo @ CartContext.tsx:90
