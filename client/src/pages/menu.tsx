@@ -28,6 +28,7 @@ import { Cart } from "@/components/Cart";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCustomer } from "@/contexts/CustomerContext";
+import { useToast } from "@/hooks/use-toast";
 import { CustomerProfileDialog } from "@/components/customer-profile-dialog";
 import { ISTClock } from "@/components/ist-clock";
 import type { MenuItem } from "@shared/schema";
@@ -178,11 +179,25 @@ export default function Menu() {
   
   const { addToCart, cart, updateQuantity, removeFromCart, updateNotes, updateSpiceLevel, setSeatingInfo } = useCart();
   const { toggleFavorite, isFavorite, favoritesCount } = useFavorites();
+  const { toast } = useToast();
 
   // Set table and floor info on component mount
   useEffect(() => {
-    setSeatingInfo('T1', 'First floor');
-  }, [setSeatingInfo]);
+    const updateSeating = async () => {
+      if (customer?.phoneNumber) {
+        try {
+          await setSeatingInfo('T1', 'First floor', customer.phoneNumber);
+        } catch (error) {
+          toast({
+            title: 'Error',
+            description: 'Failed to update table information',
+            variant: 'destructive',
+          });
+        }
+      }
+    };
+    updateSeating();
+  }, [customer?.phoneNumber, setSeatingInfo, toast]);
 
   const { data: menuItems = [], isLoading } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items"],

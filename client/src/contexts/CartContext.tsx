@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
 import type { CartItemWithDetails, Cart } from '../lib/cart-types';
+import { apiRequest } from '@/lib/queryClient';
 
 const CART_STORAGE_KEY = 'restaurant-pos-cart';
 const SEATING_STORAGE_KEY = 'restaurant-pos-seating';
@@ -8,7 +9,7 @@ interface CartContextType {
   cart: Cart;
   tableNumber: string;
   floorNumber: string;
-  setSeatingInfo: (table: string, floor: string) => void;
+  setSeatingInfo: (table: string, floor: string, phoneNumber?: string) => Promise<void>;
   addToCart: (item: Omit<CartItemWithDetails, 'id' | 'quantity'>) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
@@ -65,9 +66,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [tableNumber, floorNumber]);
 
-  const setSeatingInfo = (table: string, floor: string) => {
+  const setSeatingInfo = async (table: string, floor: string, phoneNumber?: string) => {
+    // Store previous values for rollback in case of error
+    const previousTable = tableNumber;
+    const previousFloor = floorNumber;
+    
+    // Optimistically update local state
     setTableNumber(table);
     setFloorNumber(floor);
+    
+    // If phoneNumber is provided, update database
+    if (phoneNumber) {
+      try {
+        await apiRequest('PATCH', `/api/customers/${phoneNumber}/seating`, {
+          tableNumber: table,
+          floorNumber: floor,
+        });
+        // Success - localStorage will be updated by useEffect
+      } catch (error) {
+        // Rollback on error
+        setTableNumber(previousTable);
+        setFloorNumber(previousFloor);
+        console.error('Failed to update seating information:', error);
+        throw error; // Re-throw so caller can handle (e.g., show toast)
+      }
+    }
   };
 
   const addToCart = (item: Omit<CartItemWithDetails, 'id' | 'quantity'>) => {

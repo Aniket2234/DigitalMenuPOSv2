@@ -126,6 +126,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/customers/:phoneNumber/seating", async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const { normalizePhoneNumber } = await import("@shared/utils/phoneNormalization");
+      const normalizedPhone = normalizePhoneNumber(phoneNumber);
+      
+      const seatingSchema = z.object({
+        tableNumber: z.string().min(1, "Table number is required"),
+        floorNumber: z.string().min(1, "Floor number is required"),
+      });
+      
+      const validatedData = seatingSchema.parse(req.body);
+      
+      const updatedCustomer = await storage.updateCustomerTableInfo(
+        normalizedPhone,
+        validatedData.tableNumber,
+        validatedData.floorNumber
+      );
+      
+      if (!updatedCustomer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      res.json(updatedCustomer);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid seating data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update seating information" });
+    }
+  });
+
   app.post("/api/customers/:id/favorites", async (req, res) => {
     try {
       const { id } = req.params;
