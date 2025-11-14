@@ -186,7 +186,7 @@ export default function Menu() {
     const updateSeating = async () => {
       if (customer?.phoneNumber) {
         try {
-          await setSeatingInfo('T1', 'Table 1', 'First floor', customer.phoneNumber);
+          await setSeatingInfo('T1', 'Table 1', 'Ground Floor', customer.phoneNumber);
         } catch (error) {
           toast({
             title: 'Error',
@@ -624,7 +624,7 @@ export default function Menu() {
                 className="text-sm font-semibold"
                 data-testid="badge-floor"
               >
-                First floor
+                Ground Floor
               </Badge>
             </div>
           </div>
