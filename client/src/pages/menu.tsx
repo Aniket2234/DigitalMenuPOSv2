@@ -27,6 +27,7 @@ import { Cart } from "@/components/Cart";
 import { useCart } from "@/hooks/useCart";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { CustomerProfileDialog } from "@/components/customer-profile-dialog";
+import { ISTClock } from "@/components/ist-clock";
 import type { MenuItem } from "@shared/schema";
 import {
   Dialog,
@@ -460,6 +461,16 @@ export default function Menu() {
                 >
                   <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
+              </div>
+
+              {/* Current Time and Date */}
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <ISTClock 
+                  className="flex-wrap justify-center"
+                  timeClassName="text-sm sm:text-base text-gray-700"
+                  dateClassName="text-sm sm:text-base text-gray-700"
+                  iconSize={18}
+                />
               </div>
 
               {/* Categories */}

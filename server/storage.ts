@@ -656,10 +656,11 @@ export class MongoStorage implements IStorage {
 
   async updateCustomerName(phoneNumber: string, name: string): Promise<Customer | undefined> {
     try {
+      const now = new Date();
       const updatedCustomer = await this.customersCollection.findOneAndUpdate(
         { phoneNumber },
         {
-          $set: { name, updatedAt: new Date() }
+          $set: { name, updatedAt: now }
         },
         { returnDocument: 'after' }
       );
@@ -672,13 +673,23 @@ export class MongoStorage implements IStorage {
 
   async incrementVisitCount(phoneNumber: string): Promise<void> {
     try {
-      await this.customersCollection.updateOne(
-        { phoneNumber },
-        {
-          $inc: { visitCount: 1 },
-          $set: { lastVisit: new Date(), updatedAt: new Date() }
-        }
-      );
+      const { shouldIncrementVisit } = await import("@shared/utils/timezone");
+      
+      const customer = await this.getCustomerByPhone(phoneNumber);
+      if (!customer) {
+        throw new Error("Customer not found");
+      }
+
+      if (shouldIncrementVisit(customer.lastVisit)) {
+        const now = new Date();
+        await this.customersCollection.updateOne(
+          { phoneNumber },
+          {
+            $inc: { visitCount: 1 },
+            $set: { lastVisit: now, updatedAt: now }
+          }
+        );
+      }
     } catch (error) {
       console.error("Error incrementing visit count:", error);
       throw error;

@@ -5,6 +5,7 @@ import { MediaPreloader } from "../components/media-preloader";
 import { useState, useEffect, useCallback } from "react";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { CustomerRegistrationDialog } from "@/components/customer-registration-dialog";
+import { ISTClock } from "@/components/ist-clock";
 import backgroundImage from "/background.png";
 
 export default function Welcome() {
@@ -110,6 +111,19 @@ export default function Welcome() {
                 </h2>
               </div>
             </div>
+          </div>
+
+          {/* Current Time and Date */}
+          <div className="text-center bg-white/90 rounded-2xl shadow-lg" style={{ 
+            padding: `${16 * scaleFactor}px ${24 * scaleFactor}px`,
+            maxWidth: `${320 * scaleFactor}px`
+          }}>
+            <ISTClock 
+              className="flex-wrap justify-center gap-3"
+              timeClassName={`text-gray-800`}
+              dateClassName={`text-gray-800`}
+              iconSize={Math.round(16 * scaleFactor)}
+            />
           </div>
 
           {/* Welcome Message */}
