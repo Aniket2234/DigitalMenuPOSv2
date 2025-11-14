@@ -1,11 +1,18 @@
-# Digital Menu Order Storage Structure
+================================================================================
+                    DIGITAL MENU ORDER STORAGE STRUCTURE
+                    Restaurant POS Digital Menu System
+================================================================================
 
-## Overview
-All digital menu orders are stored in a **separate MongoDB collection** (`digital_menu_customer_orders`) to avoid conflicts with the existing POS software that shares the same MongoDB database (`mingsdb`).
+OVERVIEW
+========
+All digital menu orders are stored in a **separate MongoDB collection** 
+(`digital_menu_customer_orders`) to avoid conflicts with the existing POS 
+software that shares the same MongoDB database (`mingsdb`).
 
-## MongoDB Database Structure
+================================================================================
+MONGODB DATABASE STRUCTURE
+================================================================================
 
-```
 MongoDB Database: mingsdb
 │
 ├── 📁 POS Software Collections (DO NOT MODIFY - Used by POS Software)
@@ -17,15 +24,16 @@ MongoDB Database: mingsdb
 │   ├── menuItems (Menu items from all categories)
 │   ├── cartitems (Shopping cart items)
 │   └── users (Admin users)
-```
 
-## Digital Menu Customer Order Collection
+================================================================================
+DIGITAL MENU CUSTOMER ORDER COLLECTION
+================================================================================
 
-**Collection Name:** `digital_menu_customer_orders`
+Collection Name: digital_menu_customer_orders
 
-### Document Structure
+DOCUMENT STRUCTURE
+------------------
 
-```json
 {
   "_id": "ObjectId",
   "customerId": "ObjectId (reference to customers collection)",
@@ -54,11 +62,10 @@ MongoDB Database: mingsdb
   "createdAt": "Date (IST timezone - when record was created)",
   "updatedAt": "Date (IST timezone - when record was last updated)"
 }
-```
 
-### Example Order Document
+EXAMPLE ORDER DOCUMENT
+----------------------
 
-```json
 {
   "_id": "507f1f77bcf86cd799439011",
   "customerId": "507f191e810c19729de860ea",
@@ -96,11 +103,11 @@ MongoDB Database: mingsdb
   "createdAt": "2025-11-14T11:30:00.000Z",
   "updatedAt": "2025-11-14T11:30:00.000Z"
 }
-```
 
-## Complete Storage Tree Format
+================================================================================
+COMPLETE STORAGE TREE FORMAT
+================================================================================
 
-```
 MongoDB Database Structure
 └── mingsdb (Database)
     │
@@ -176,16 +183,17 @@ MongoDB Database Structure
     │
     └── POS Software Collections (DO NOT MODIFY)
         └── orders (and other POS collections)
-```
 
-## Key Features
+================================================================================
+KEY FEATURES
+================================================================================
 
-### ✅ Complete Data Isolation
+✅ COMPLETE DATA ISOLATION
 - Digital menu orders are stored in `digital_menu_customer_orders`
 - POS software orders remain in their own collection
 - **Zero interference** between the two systems
 
-### ✅ Comprehensive Order Data
+✅ COMPREHENSIVE ORDER DATA
 Each order includes:
 - **Customer Information**: Name, phone number, customer ID
 - **Order Items**: Full details including name, quantity, price, spice level, and notes
@@ -194,40 +202,51 @@ Each order includes:
 - **Location Data**: Table number and floor name
 - **Timestamps**: Order date, creation time, last update time (all in IST)
 
-### ✅ Item-Level Notes
+✅ ITEM-LEVEL NOTES
 Each item in an order can have:
 - **Spice Level**: Customer preference for spiciness
 - **Notes**: Special instructions (e.g., "Extra sauce", "No onions", etc.)
 
-### ✅ IST Timezone Support
+✅ IST TIMEZONE SUPPORT
 All timestamps (orderDate, createdAt, updatedAt) are:
 - Stored as UTC in the database
 - Displayed in Indian Standard Time (IST) to users
 - Format: DD/MM/YYYY HH:MM
 
-## Implementation Details
+================================================================================
+IMPLEMENTATION DETAILS
+================================================================================
 
-**File:** `server/storage.ts`
-- Collection constant: `DIGITAL_MENU_ORDERS_COLLECTION = "digital_menu_customer_orders"`
+File: server/storage.ts
+- Collection constant: DIGITAL_MENU_ORDERS_COLLECTION = "digital_menu_customer_orders"
 - Line 379: Constant definition
 - Line 444: Collection initialization
 
-**File:** `shared/schema.ts`
+File: shared/schema.ts
 - Complete Order interface with all fields
 - Validation schemas using Zod
 
-## Safety Notes
+================================================================================
+SAFETY NOTES
+================================================================================
 
-⚠️ **Important**: The MongoDB database is shared with another POS software system. This digital menu application uses **completely separate collections** to ensure:
+⚠️ IMPORTANT: The MongoDB database is shared with another POS software system. 
+This digital menu application uses **completely separate collections** to ensure:
 1. No data conflicts
 2. No accidental modifications to POS data
 3. Independent operation of both systems
 4. Safe parallel usage
 
-## Migration Notes
+================================================================================
+MIGRATION NOTES
+================================================================================
 
 If you have existing orders in the old `orders` collection from digital menu:
 1. They will NOT be automatically migrated
 2. New orders will go to `digital_menu_customer_orders`
 3. Old orders remain in `orders` collection
 4. Manual migration can be performed if needed
+
+================================================================================
+END OF DOCUMENT
+================================================================================
