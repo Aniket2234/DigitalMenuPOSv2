@@ -186,7 +186,7 @@ export default function Menu() {
     const updateSeating = async () => {
       if (customer?.phoneNumber) {
         try {
-          await setSeatingInfo('T1', 'Table 1', 'Ground Floor', customer.phoneNumber);
+          await setSeatingInfo('T1', 'Ground Floor', customer.phoneNumber);
         } catch (error) {
           toast({
             title: 'Error',

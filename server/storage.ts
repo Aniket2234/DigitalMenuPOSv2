@@ -355,7 +355,7 @@ export interface IStorage {
   updateCustomerName(phoneNumber: string, name: string): Promise<Customer | undefined>;
   incrementVisitCount(phoneNumber: string): Promise<void>;
   updateLoginStatus(phoneNumber: string, loginStatus: 'loggedin' | 'loggedout'): Promise<Customer | undefined>;
-  updateCustomerTableInfo(phoneNumber: string, tableNumber: string, tableName: string, floorNumber: string): Promise<Customer | undefined>;
+  updateCustomerTableInfo(phoneNumber: string, tableNumber: string, floorNumber: string): Promise<Customer | undefined>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
@@ -481,7 +481,6 @@ export class MongoStorage implements IStorage {
               lastVisit: { $ifNull: ['$lastVisit', now] },
               loginStatus: { $ifNull: ['$loginStatus', 'loggedout'] },
               tableNumber: { $ifNull: ['$tableNumber', 'NA'] },
-              tableName: { $ifNull: ['$tableName', 'NA'] },
               floorNumber: { $ifNull: ['$floorNumber', 'NA'] },
               tableStatus: { $ifNull: ['$tableStatus', 'free'] },
               currentOrder: { $ifNull: ['$currentOrder', null] },
@@ -496,6 +495,14 @@ export class MongoStorage implements IStorage {
       console.log(`[Migration] Customer fields migration complete:
         - Matched: ${result.matchedCount} documents
         - Modified: ${result.modifiedCount} documents`);
+
+      // Remove deprecated tableName field from all documents
+      console.log('[Migration] Removing deprecated tableName field...');
+      const removeResult = await this.customersCollection.updateMany(
+        { tableName: { $exists: true } },
+        { $unset: { tableName: "" } }
+      );
+      console.log(`[Migration] Removed tableName from ${removeResult.modifiedCount} documents`);
         
     } catch (error) {
       console.error('[Migration] Error during customer fields migration:', error);
@@ -789,17 +796,16 @@ export class MongoStorage implements IStorage {
     }
   }
 
-  async updateCustomerTableInfo(phoneNumber: string, tableNumber: string, tableName: string, floorNumber: string): Promise<Customer | undefined> {
+  async updateCustomerTableInfo(phoneNumber: string, tableNumber: string, floorNumber: string): Promise<Customer | undefined> {
     try {
       const now = new Date();
       const maskedPhone = phoneNumber.slice(0, 3) + '*'.repeat(phoneNumber.length - 3);
-      console.log(`[Storage] Updating customer table info for phone: ${maskedPhone}, tableNumber: ${tableNumber}, tableName: ${tableName}, floorNumber: ${floorNumber}`);
+      console.log(`[Storage] Updating customer table info for phone: ${maskedPhone}, tableNumber: ${tableNumber}, floorNumber: ${floorNumber}`);
       const updatedCustomer = await this.customersCollection.findOneAndUpdate(
         { phoneNumber },
         {
           $set: { 
             tableNumber,
-            tableName,
             floorNumber, 
             updatedAt: now 
           }
@@ -807,7 +813,7 @@ export class MongoStorage implements IStorage {
         { returnDocument: 'after' }
       );
       if (updatedCustomer) {
-        console.log(`[Storage] Successfully updated customer - tableNumber: ${updatedCustomer.tableNumber}, tableName: ${updatedCustomer.tableName}, floorNumber: ${updatedCustomer.floorNumber}`);
+        console.log(`[Storage] Successfully updated customer - tableNumber: ${updatedCustomer.tableNumber}, floorNumber: ${updatedCustomer.floorNumber}`);
       } else {
         console.log(`[Storage] Customer not found for phone: ${maskedPhone}`);
       }

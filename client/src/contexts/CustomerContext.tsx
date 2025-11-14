@@ -62,7 +62,7 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
         customer,
         setCustomer,
         logout,
-        isLoggedIn: !!customer,
+        isLoggedIn: customer?.loginStatus === 'loggedin',
       }}
     >
       {children}
