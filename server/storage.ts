@@ -641,6 +641,7 @@ export class MongoStorage implements IStorage {
       const customer: Omit<Customer, '_id'> = {
         ...insertCustomer,
         visitCount: 1,
+        favorites: [],
         firstVisit: now,
         lastVisit: now,
         createdAt: now,
@@ -697,6 +698,51 @@ export class MongoStorage implements IStorage {
     } catch (error) {
       console.error("Error incrementing visit count:", error);
       throw error;
+    }
+  }
+
+  async addFavorite(customerId: string, menuItemId: string): Promise<void> {
+    try {
+      const now = new Date();
+      await this.customersCollection.updateOne(
+        { _id: new ObjectId(customerId) },
+        {
+          $addToSet: { favorites: menuItemId },
+          $set: { updatedAt: now }
+        }
+      );
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      throw error;
+    }
+  }
+
+  async removeFavorite(customerId: string, menuItemId: string): Promise<void> {
+    try {
+      const now = new Date();
+      await this.customersCollection.updateOne(
+        { _id: new ObjectId(customerId) },
+        {
+          $pull: { favorites: menuItemId },
+          $set: { updatedAt: now }
+        }
+      );
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      throw error;
+    }
+  }
+
+  async getCustomerFavorites(customerId: string): Promise<string[]> {
+    try {
+      const customer = await this.customersCollection.findOne(
+        { _id: new ObjectId(customerId) },
+        { projection: { favorites: 1, _id: 0 } }
+      );
+      return customer?.favorites || [];
+    } catch (error) {
+      console.error("Error getting favorites:", error);
+      return [];
     }
   }
 

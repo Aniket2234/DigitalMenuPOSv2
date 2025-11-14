@@ -79,25 +79,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer routes
   app.post("/api/customers/register", async (req, res) => {
     try {
-      const validatedData = insertCustomerSchema.parse(req.body);
+      const { normalizePhoneNumber } = await import("@shared/utils/phoneNormalization");
       
-      // Check if customer already exists
+      const normalizedPhone = normalizePhoneNumber(req.body.phoneNumber || "");
+      
+      const validatedData = insertCustomerSchema.parse({
+        ...req.body,
+        phoneNumber: normalizedPhone
+      });
+      
       const existingCustomer = await storage.getCustomerByPhone(validatedData.phoneNumber);
       
       if (existingCustomer) {
-        // Update name if different and increment visit count
         if (existingCustomer.name !== validatedData.name) {
           const updatedCustomer = await storage.updateCustomerName(validatedData.phoneNumber, validatedData.name);
           await storage.incrementVisitCount(validatedData.phoneNumber);
           return res.json(updatedCustomer);
         } else {
-          // Just increment visit count
           await storage.incrementVisitCount(validatedData.phoneNumber);
           return res.json(existingCustomer);
         }
       }
       
-      // Create new customer
       const customer = await storage.createCustomer(validatedData);
       res.json(customer);
     } catch (error: any) {
@@ -111,13 +114,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/customers/:phoneNumber", async (req, res) => {
     try {
       const { phoneNumber } = req.params;
-      const customer = await storage.getCustomerByPhone(phoneNumber);
+      const { normalizePhoneNumber } = await import("@shared/utils/phoneNormalization");
+      const normalizedPhone = normalizePhoneNumber(phoneNumber);
+      const customer = await storage.getCustomerByPhone(normalizedPhone);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
       res.json(customer);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch customer" });
+    }
+  });
+
+  app.post("/api/customers/:id/favorites", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { menuItemId } = req.body;
+      
+      if (!menuItemId) {
+        return res.status(400).json({ message: "menuItemId is required" });
+      }
+      
+      const { ObjectId } = await import("mongodb");
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+      
+      await storage.addFavorite(id, menuItemId);
+      res.json({ message: "Favorite added successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add favorite" });
+    }
+  });
+
+  app.delete("/api/customers/:id/favorites/:menuItemId", async (req, res) => {
+    try {
+      const { id, menuItemId } = req.params;
+      
+      const { ObjectId } = await import("mongodb");
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+      
+      await storage.removeFavorite(id, menuItemId);
+      res.json({ message: "Favorite removed successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove favorite" });
+    }
+  });
+
+  app.get("/api/customers/:id/favorites", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const { ObjectId } = await import("mongodb");
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+      
+      const favorites = await storage.getCustomerFavorites(id);
+      res.json({ favorites });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch favorites" });
     }
   });
 

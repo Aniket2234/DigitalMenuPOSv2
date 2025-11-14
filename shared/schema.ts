@@ -40,6 +40,7 @@ export interface Customer {
   name: string;
   phoneNumber: string;
   visitCount: number;
+  favorites: string[];
   firstVisit: Date;
   lastVisit: Date;
   createdAt: Date;
@@ -99,7 +100,7 @@ export const insertUserSchema = z.object({
 
 export const insertCustomerSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  phoneNumber: z.string().regex(/^\d{10}$/, "Phone number must be 10 digits"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits").regex(/^\d+$/, "Phone number must contain only digits"),
 });
 
 export const insertOrderItemSchema = z.object({
