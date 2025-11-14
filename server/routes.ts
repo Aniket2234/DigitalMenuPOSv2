@@ -238,6 +238,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/customers/:customerId/orders/:orderId", async (req, res) => {
+    try {
+      const { customerId, orderId } = req.params;
+      const { ObjectId } = await import("mongodb");
+      
+      if (!ObjectId.isValid(customerId) || !ObjectId.isValid(orderId)) {
+        return res.status(400).json({ message: "Invalid customer ID or order ID" });
+      }
+      
+      await storage.deleteOrderFromHistory(customerId, orderId);
+      res.json({ message: "Order deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
+  app.delete("/api/customers/:customerId/orders", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const { ObjectId } = await import("mongodb");
+      
+      if (!ObjectId.isValid(customerId)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+      
+      await storage.deleteAllOrdersFromHistory(customerId);
+      res.json({ message: "All orders deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete all orders" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
