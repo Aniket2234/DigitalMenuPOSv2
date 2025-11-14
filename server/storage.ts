@@ -355,6 +355,7 @@ export interface IStorage {
   updateCustomerName(phoneNumber: string, name: string): Promise<Customer | undefined>;
   incrementVisitCount(phoneNumber: string): Promise<void>;
   updateLoginStatus(phoneNumber: string, loginStatus: 'loggedin' | 'loggedout'): Promise<Customer | undefined>;
+  updateCustomerTableInfo(phoneNumber: string, tableNumber: string, floorNumber: string): Promise<Customer | undefined>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
@@ -651,6 +652,8 @@ export class MongoStorage implements IStorage {
         firstVisit: now,
         lastVisit: now,
         loginStatus: 'loggedin',
+        tableNumber: 'NA',
+        floorNumber: 'NA',
         tableStatus: 'free',
         currentOrder: null,
         orderHistory: [],
@@ -714,16 +717,46 @@ export class MongoStorage implements IStorage {
   async updateLoginStatus(phoneNumber: string, loginStatus: 'loggedin' | 'loggedout'): Promise<Customer | undefined> {
     try {
       const now = new Date();
+      const updateFields: any = { 
+        loginStatus, 
+        updatedAt: now 
+      };
+      
+      // Reset table and floor to "NA" when logging out
+      if (loginStatus === 'loggedout') {
+        updateFields.tableNumber = 'NA';
+        updateFields.floorNumber = 'NA';
+      }
+      
       const updatedCustomer = await this.customersCollection.findOneAndUpdate(
         { phoneNumber },
-        {
-          $set: { loginStatus, updatedAt: now }
-        },
+        { $set: updateFields },
         { returnDocument: 'after' }
       );
       return updatedCustomer || undefined;
     } catch (error) {
       console.error("Error updating login status:", error);
+      return undefined;
+    }
+  }
+
+  async updateCustomerTableInfo(phoneNumber: string, tableNumber: string, floorNumber: string): Promise<Customer | undefined> {
+    try {
+      const now = new Date();
+      const updatedCustomer = await this.customersCollection.findOneAndUpdate(
+        { phoneNumber },
+        {
+          $set: { 
+            tableNumber, 
+            floorNumber, 
+            updatedAt: now 
+          }
+        },
+        { returnDocument: 'after' }
+      );
+      return updatedCustomer || undefined;
+    } catch (error) {
+      console.error("Error updating customer table info:", error);
       return undefined;
     }
   }

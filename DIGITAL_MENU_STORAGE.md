@@ -152,7 +152,9 @@ MongoDB Database Structure
     │   │       ├── visitCount (number)
     │   │       ├── firstVisit (Date)
     │   │       ├── lastVisit (Date)
-    │   │       ├── loginStatus (string: 'loggedin' | 'loggedout') 🔐 NEW
+    │   │       ├── loginStatus (string: 'loggedin' | 'loggedout') 🔐
+    │   │       ├── tableNumber (string - "NA" when logged out) 📍 NEW
+    │   │       ├── floorNumber (string - "NA" when logged out) 🏢 NEW
     │   │       ├── createdAt (Date)
     │   │       └── updatedAt (Date)
     │   │
@@ -219,8 +221,11 @@ All timestamps (orderDate, createdAt, updatedAt) are:
 - Displayed in Indian Standard Time (IST) to users
 - Format: DD/MM/YYYY HH:MM
 
-### ✅ LOGIN STATUS TRACKING (NEW)
+### ✅ LOGIN STATUS TRACKING
 Each customer now has a login status field to track their current session state.
+
+### ✅ TABLE AND FLOOR TRACKING (NEW)
+Each customer now has table and floor number fields that track their current location while logged in.
 
 ---
 
@@ -380,6 +385,258 @@ restaurant_pos (Database)
 | Date | Collection | Change | Description |
 |------|------------|--------|-------------|
 | 2025-11-14 | customers | Added loginStatus | Track customer login/logout state<br>- Type: String enum (`'loggedin'` \| `'loggedout'`)<br>- Default: `'loggedin'` on customer creation<br>- Updated via `updateLoginStatus()` method |
+
+---
+
+## TABLE AND FLOOR NUMBER FIELDS DOCUMENTATION
+
+### 📍 Location in MongoDB
+
+```
+MongoDB Database: restaurant_pos
+└── Collection: customers
+    └── Document: { phoneNumber: "9876543210" }
+        ├── Field: tableNumber: string
+        └── Field: floorNumber: string
+```
+
+### Field Details
+
+| Property | tableNumber | floorNumber |
+|----------|-------------|-------------|
+| **Type** | String | String |
+| **Default Value** | `"NA"` (not assigned) | `"NA"` (not assigned) |
+| **Required** | Yes | Yes |
+| **Location** | `restaurant_pos.customers[].tableNumber` | `restaurant_pos.customers[].floorNumber` |
+
+### Purpose
+
+The tableNumber and floorNumber fields track the customer's current dining location while they are logged in. These fields:
+
+1. **Track Current Location**: Know where each logged-in customer is seated
+2. **Order Delivery**: Help staff deliver orders to the correct table/floor
+3. **Session-Based**: Automatically reset to "NA" when customer logs out
+4. **Real-Time Updates**: Can be updated as customer changes tables
+5. **Historical Data**: Each order preserves table/floor info separately
+
+### Behavior Rules
+
+| Login Status | Table/Floor Values | When Set |
+|--------------|-------------------|----------|
+| **Logged In** | Can be any value (e.g., "T-12", "Ground Floor") | Set by customer or staff |
+| **Logged Out** | Automatically set to `"NA"` | On logout |
+| **First Registration** | Initially `"NA"` | On customer creation |
+
+### State Transitions
+
+```
+Customer Registration
+  ↓
+tableNumber = "NA", floorNumber = "NA"
+  ↓
+Customer Assigns Table/Floor (while logged in)
+  ↓
+tableNumber = "T-12", floorNumber = "Ground Floor"
+  ↓
+Customer Logs Out
+  ↓
+tableNumber = "NA", floorNumber = "NA" (automatically reset)
+```
+
+### Database Operations
+
+#### Create Customer (initial values)
+
+```javascript
+db.customers.insertOne({
+  name: "Rajesh Kumar",
+  phoneNumber: "9876543210",
+  visitCount: 1,
+  favorites: [],
+  firstVisit: ISODate("2025-11-14T12:00:00Z"),
+  lastVisit: ISODate("2025-11-14T12:00:00Z"),
+  loginStatus: "loggedin",
+  tableNumber: "NA",       // ← Initially "NA"
+  floorNumber: "NA",       // ← Initially "NA"
+  createdAt: ISODate("2025-11-14T12:00:00Z"),
+  updatedAt: ISODate("2025-11-14T12:00:00Z")
+})
+```
+
+#### Update Table and Floor Info (while logged in)
+
+```javascript
+db.customers.updateOne(
+  { phoneNumber: "9876543210" },
+  { 
+    $set: { 
+      tableNumber: "T-12",
+      floorNumber: "Ground Floor",
+      updatedAt: ISODate("2025-11-14T13:00:00Z")
+    }
+  }
+)
+```
+
+#### Automatic Reset on Logout
+
+```javascript
+// When customer logs out, tableNumber and floorNumber are automatically set to "NA"
+db.customers.updateOne(
+  { phoneNumber: "9876543210" },
+  { 
+    $set: { 
+      loginStatus: "loggedout",
+      tableNumber: "NA",      // ← Automatically reset
+      floorNumber: "NA",      // ← Automatically reset
+      updatedAt: ISODate("2025-11-14T15:00:00Z")
+    }
+  }
+)
+```
+
+#### Query Customers by Table
+
+```javascript
+// Find all customers at a specific table
+db.customers.find({ 
+  tableNumber: "T-12",
+  loginStatus: "loggedin"  // Only logged-in customers
+})
+```
+
+#### Query Customers by Floor
+
+```javascript
+// Find all customers on a specific floor
+db.customers.find({ 
+  floorNumber: "Ground Floor",
+  loginStatus: "loggedin"
+})
+```
+
+### API Methods
+
+The following storage methods interact with tableNumber and floorNumber:
+
+#### 1. `createCustomer(customer)`
+- Creates new customer with `tableNumber = "NA"` and `floorNumber = "NA"`
+- Location: `server/storage.ts`, line ~657-658
+
+#### 2. `updateLoginStatus(phoneNumber, loginStatus)`
+- When `loginStatus = "loggedout"`: automatically sets `tableNumber = "NA"` and `floorNumber = "NA"`
+- When `loginStatus = "loggedin"`: table/floor values remain unchanged
+- **Parameters:**
+  - `phoneNumber`: string (customer's phone number)
+  - `loginStatus`: `"loggedin"` | `"loggedout"`
+- **Auto-Reset Behavior:** If logging out, table and floor are automatically reset to "NA"
+- Location: `server/storage.ts`, line ~720-743
+
+#### 3. `updateCustomerTableInfo(phoneNumber, tableNumber, floorNumber)` (NEW)
+- Updates customer's table and floor information
+- **Parameters:**
+  - `phoneNumber`: string (customer's phone number)
+  - `tableNumber`: string (table identifier, e.g., "T-12", "Table 5")
+  - `floorNumber`: string (floor identifier, e.g., "Ground Floor", "1st Floor")
+- **Returns:** Updated Customer object or undefined
+- **Usage:** Call this when customer selects/changes their table location
+- Location: `server/storage.ts`, line ~746-765
+
+#### 4. `getCustomerByPhone(phoneNumber)`
+- Retrieves customer including their current tableNumber and floorNumber
+- Location: `server/storage.ts`, line ~633
+
+### Example Customer Documents
+
+#### Logged In Customer with Table Assignment
+
+```javascript
+{
+  "_id": "507f191e810c19729de860ea",
+  "name": "Rajesh Kumar",
+  "phoneNumber": "9876543210",
+  "visitCount": 5,
+  "favorites": ["item123", "item456"],
+  "firstVisit": "2025-01-15T10:30:00.000Z",
+  "lastVisit": "2025-11-14T12:00:00.000Z",
+  "loginStatus": "loggedin",      // ← Logged in
+  "tableNumber": "T-12",           // ← Current table
+  "floorNumber": "Ground Floor",   // ← Current floor
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "updatedAt": "2025-11-14T13:00:00.000Z"
+}
+```
+
+#### Logged Out Customer (Table/Floor Reset)
+
+```javascript
+{
+  "_id": "507f1f77bcf86cd799439022",
+  "name": "Priya Sharma",
+  "phoneNumber": "9123456789",
+  "visitCount": 3,
+  "favorites": [],
+  "firstVisit": "2025-02-01T09:00:00.000Z",
+  "lastVisit": "2025-11-14T14:00:00.000Z",
+  "loginStatus": "loggedout",   // ← Logged out
+  "tableNumber": "NA",          // ← Reset to NA
+  "floorNumber": "NA",          // ← Reset to NA
+  "createdAt": "2025-02-01T09:00:00.000Z",
+  "updatedAt": "2025-11-14T15:00:00.000Z"
+}
+```
+
+### Tree Location Visualization
+
+```
+restaurant_pos (Database)
+│
+├── customers (Collection)
+│   ├── Document 1 (phoneNumber: "9876543210")
+│   │   ├── _id: ObjectId("507f191e810c19729de860ea")
+│   │   ├── name: "Rajesh Kumar"
+│   │   ├── phoneNumber: "9876543210"
+│   │   ├── loginStatus: "loggedin" 🔐
+│   │   ├── tableNumber: "T-12" 📍 ← HERE
+│   │   ├── floorNumber: "Ground Floor" 🏢 ← HERE
+│   │   └── ...
+│   │
+│   └── Document 2 (phoneNumber: "9123456789")
+│       ├── _id: ObjectId("...")
+│       ├── name: "Priya Sharma"
+│       ├── phoneNumber: "9123456789"
+│       ├── loginStatus: "loggedout" 🔐
+│       ├── tableNumber: "NA" 📍 ← Reset on logout
+│       ├── floorNumber: "NA" 🏢 ← Reset on logout
+│       └── ...
+│
+└── digital_menu_customer_orders (Collection)
+    └── (Each order also stores table/floor independently)
+```
+
+### Important Notes
+
+#### Difference Between Customer and Order Table/Floor Fields
+
+| Location | Persistence | Purpose |
+|----------|-------------|---------|
+| **Customer Document** | Session-based (resets on logout) | Track current location of logged-in customer |
+| **Order Document** | Permanent (historical record) | Preserve where order was placed |
+
+**Example Flow:**
+1. Customer logs in → tableNumber = "NA", floorNumber = "NA"
+2. Customer selects table → tableNumber = "T-12", floorNumber = "Ground Floor"
+3. Customer places order → Order saves: tableNumber = "T-12", floorNumber = "Ground Floor"
+4. Customer moves to different table → updateCustomerTableInfo("T-15", "1st Floor")
+5. Customer logs out → tableNumber = "NA", floorNumber = "NA"
+6. Order still preserves → tableNumber = "T-12", floorNumber = "Ground Floor"
+
+### Change Log Entry
+
+| Date | Collection | Change | Description |
+|------|------------|--------|-------------|
+| 2025-11-14 | customers | Added tableNumber | Track customer's current table location<br>- Type: String<br>- Default: `"NA"` on creation<br>- Auto-reset to `"NA"` on logout<br>- Updated via `updateCustomerTableInfo()` method |
+| 2025-11-14 | customers | Added floorNumber | Track customer's current floor location<br>- Type: String<br>- Default: `"NA"` on creation<br>- Auto-reset to `"NA"` on logout<br>- Updated via `updateCustomerTableInfo()` method |
 
 ---
 

@@ -44,6 +44,8 @@ export interface Customer {
   firstVisit: Date;
   lastVisit: Date;
   loginStatus: 'loggedin' | 'loggedout';
+  tableNumber: string;
+  floorNumber: string;
   tableStatus: 'free' | 'occupied' | 'preparing' | 'ready' | 'served';
   currentOrder?: OrderEntry | null;
   orderHistory: OrderEntry[];
