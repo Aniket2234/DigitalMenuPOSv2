@@ -63,6 +63,7 @@ export function Cart() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/customers', customer?._id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders/customer', customer?._id?.toString()] });
     },
   });
 
