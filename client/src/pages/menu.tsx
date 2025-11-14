@@ -339,7 +339,7 @@ export default function Menu() {
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesFavorites = !showFavoritesOnly || isFavorite(item.id);
+      const matchesFavorites = !showFavoritesOnly || isFavorite(item._id.toString());
 
       return matchesCategory && matchesFilter && matchesSearch && matchesFavorites;
     });
@@ -1086,7 +1086,7 @@ export default function Menu() {
             onDecrement={handleDecrement}
             onNotesClick={handleNotesClick}
             onFavoriteToggle={toggleFavorite}
-            isFavorite={isFavorite(item.id)}
+            isFavorite={isFavorite(item._id.toString())}
           />
         </motion.div>
       ))}

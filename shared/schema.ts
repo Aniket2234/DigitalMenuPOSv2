@@ -4,17 +4,19 @@ import { ObjectId } from "mongodb";
 // MongoDB Schema Types
 export interface MenuItem {
   _id: ObjectId;
+  id: string;
   name: string;
   description: string;
   price: number;
   category: string;
   isVeg: boolean;
   image: string;
-  restaurantId: ObjectId;
-  isAvailable: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  __v: number;
+  restaurantId?: ObjectId;
+  isAvailable?: boolean;
+  available?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  __v?: number;
 }
 
 export interface CartItem {

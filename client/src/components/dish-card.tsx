@@ -47,7 +47,7 @@ export default function DishCard({
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => onFavoriteToggle(item.id)}
+              onClick={() => onFavoriteToggle(item._id.toString())}
               className="absolute top-2 left-2 h-8 w-8 bg-white/90 hover:bg-white shadow-md"
               data-testid={`button-favorite-${item._id}`}
             >
