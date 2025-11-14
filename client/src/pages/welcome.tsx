@@ -132,7 +132,7 @@ export default function Welcome() {
             maxWidth: `${320 * scaleFactor}px`
           }}>
             <h3 className="text-gray-800 font-semibold mb-2" style={{ fontSize: `${18 * scaleFactor}px` }}>
-              Welcome to Restaurant POS
+              {customer ? `Welcome, ${customer.name}!` : 'Welcome to Restaurant POS'}
             </h3>
             <p className="text-gray-600" style={{ fontSize: `${12 * scaleFactor}px` }}>
               A modern point-of-sale system for restaurants
