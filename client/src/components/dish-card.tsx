@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, Minus, StickyNote } from "lucide-react";
+import { Plus, Minus, StickyNote, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { MenuItem } from "@shared/schema";
@@ -10,6 +10,8 @@ interface DishCardProps {
   onIncrement?: (item: MenuItem) => void;
   onDecrement?: (item: MenuItem) => void;
   onNotesClick?: (item: MenuItem) => void;
+  onFavoriteToggle?: (itemId: string) => void;
+  isFavorite?: boolean;
   quantity?: number;
 }
 
@@ -19,6 +21,8 @@ export default function DishCard({
   onIncrement,
   onDecrement,
   onNotesClick,
+  onFavoriteToggle,
+  isFavorite = false,
   quantity = 0 
 }: DishCardProps) {
   return (
@@ -39,6 +43,21 @@ export default function DishCard({
               item.isVeg ? 'bg-green-500' : 'bg-red-500'
             }`}
           />
+          {onFavoriteToggle && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onFavoriteToggle(item.id)}
+              className="absolute top-2 left-2 h-8 w-8 bg-white/90 hover:bg-white shadow-md"
+              data-testid={`button-favorite-${item._id}`}
+            >
+              <Heart
+                className={`h-4 w-4 ${
+                  isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'
+                }`}
+              />
+            </Button>
+          )}
         </div>
 
         {/* Content Section */}
