@@ -27,11 +27,12 @@ The application follows a traditional client-server architecture with clear sepa
 
 -   **Runtime**: Node.js with Express.js
 -   **Language**: TypeScript with ES modules
--   **Database**: PostgreSQL with Drizzle ORM (initially MongoDB Atlas)
--   **Session Storage**: PostgreSQL-based sessions using connect-pg-simple
+-   **Database**: MongoDB Atlas (mingsdb database) - Shared with existing POS software
+-   **Session Storage**: MongoDB-based sessions
 -   **API**: RESTful API with JSON responses
 -   **Technical Implementations**: Monorepo structure, full type safety across the stack, component-based UI, advanced animation system. Category-based data storage for menu items with automatic collection creation for new categories.
--   **Feature Specifications**: Menu display with category filtering and search, shopping cart functionality, Google review system integration, and menu item sorting (Veg items first, then Chicken, then Prawns, then others).
+-   **Feature Specifications**: Menu display with category filtering and search, shopping cart functionality, Google review system integration, menu item sorting (Veg items first, then Chicken, then Prawns, then others), IST timezone support, and 5-hour visit count window protection.
+-   **Order Storage**: All digital menu orders are stored in a separate collection `digital_menu_customer_orders` to avoid conflicts with the existing POS software that shares the same MongoDB database.
 
 ### Deployment Strategy
 
