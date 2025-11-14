@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCartItemSchema, insertCustomerSchema, insertOrderSchema } from "@shared/schema";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Menu items routes
@@ -151,6 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedCustomer);
     } catch (error: any) {
+      console.error("Error updating seating information:", error);
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Invalid seating data", errors: error.errors });
       }
