@@ -94,7 +94,69 @@ CUSTOMER DOCUMENT FIELDS
    - Auto-generated: Yes (set during document creation)
    - Immutable: Yes (never changed after creation)
 
-9. updatedAt (Date)
+9. tableStatus (String - Enum)
+   - Type: String (Enum)
+   - Description: Current status of the customer's table indicating order progress
+   - Purpose: Track the state of customer service from ordering to completion
+   - Allowed Values:
+     • 'free' - Table is available, no active order
+     • 'occupied' - Customer has placed an order (order initiated)
+     • 'preparing' - Order is being prepared in the kitchen
+     • 'ready' - Order is ready to be served
+     • 'served' - Order has been served to the customer
+   - Default: 'free'
+   - Example: "preparing"
+   - Required: Yes
+   - State Flow: free → occupied → preparing → ready → served → free (after payment)
+   - Notes: 
+     • Status changes to 'occupied' when customer places an order
+     • Status returns to 'free' after payment is completed and invoice is generated
+     • Status can be manually updated by restaurant staff through POS system
+
+10. currentOrder (Object - OrderEntry | null)
+   - Type: Object (OrderEntry) or null
+   - Description: The active ongoing order for this customer
+   - Purpose: Track real-time order details for the current dining session
+   - Structure: Complete OrderEntry object (see OrderEntry structure below)
+   - Default: null (no active order)
+   - Example: See OrderEntry example below
+   - Required: No (nullable)
+   - Lifecycle:
+     • Set when customer places an order (tableStatus → 'occupied')
+     • Updated as order progresses through preparation stages
+     • Cleared (set to null) when payment is completed
+     • Moved to orderHistory when payment is successful
+   - Notes:
+     • Only one currentOrder can exist at a time
+     • When payment is completed, this field becomes null
+     • Order details are preserved in orderHistory after completion
+
+11. orderHistory (Array of OrderEntry Objects)
+   - Type: Array of OrderEntry objects
+   - Description: Complete history of all past orders placed by this customer
+   - Purpose: Maintain comprehensive order records and customer purchase history
+   - Default: [] (empty array for new customers)
+   - Structure: Array of OrderEntry objects (see OrderEntry structure below)
+   - Example: See full example at bottom of document
+   - Required: Yes (but can be empty)
+   - Auto-updated: Yes
+   - Update Trigger: When currentOrder is paid and invoice is generated
+   - Notes:
+     • Orders are appended when payment is completed
+     • Most recent orders appear at the end of the array
+     • Each order maintains its complete details including items, pricing, and status
+     • Used for analytics, customer insights, and order history display
+
+12. createdAt (Date)
+   - Type: Date (ISO 8601 timestamp)
+   - Description: Timestamp of when the customer document was created in the database
+   - Purpose: System tracking and data integrity
+   - Example: 2025-11-14T08:30:00.000Z
+   - Required: Yes
+   - Auto-generated: Yes (set during document creation)
+   - Immutable: Yes (never changed after creation)
+
+13. updatedAt (Date)
    - Type: Date (ISO 8601 timestamp)
    - Description: Timestamp of the last modification to the customer document
    - Purpose: Track when customer information was last changed
@@ -102,6 +164,59 @@ CUSTOMER DOCUMENT FIELDS
    - Required: Yes
    - Auto-updated: Yes (updated whenever the document is modified)
    - Notes: Updates when name changes, visit count increments, or any field is modified
+
+================================================================================
+ORDERENTRY STRUCTURE (for currentOrder and orderHistory)
+================================================================================
+
+Each order (whether current or historical) contains the following fields:
+
+1. _id (ObjectId)
+   - Unique identifier for the order
+   
+2. items (Array of OrderItem Objects)
+   - menuItemId: String ID of the menu item
+   - menuItemName: Name of the menu item
+   - quantity: Number of items ordered
+   - price: Price per item
+   - total: Total price for this item (price × quantity)
+   - spiceLevel: Optional ('no-spicy' | 'less-spicy' | 'regular' | 'more-spicy')
+   - notes: Optional special instructions
+
+3. subtotal (Number)
+   - Sum of all item totals before tax
+
+4. tax (Number)
+   - Tax amount applied to the order
+
+5. total (Number)
+   - Final total (subtotal + tax)
+
+6. status (String - Enum)
+   - 'pending' | 'confirmed' | 'preparing' | 'completed' | 'cancelled'
+   - Tracks order fulfillment status
+
+7. paymentStatus (String - Enum)
+   - 'pending' | 'paid' | 'failed'
+   - Tracks payment completion
+
+8. paymentMethod (String - Optional)
+   - Method used for payment (e.g., 'cash', 'card', 'upi')
+
+9. tableNumber (String - Optional)
+   - Table number where customer is seated
+
+10. floorNumber (String - Optional)
+    - Floor number where customer is seated
+
+11. orderDate (Date)
+    - When the order was placed
+
+12. createdAt (Date)
+    - When the order record was created
+
+13. updatedAt (Date)
+    - When the order record was last updated
 
 ================================================================================
 CUSTOMER LIFECYCLE
@@ -114,6 +229,9 @@ CUSTOMER LIFECYCLE
    - name is set to the provided name
    - visitCount is initialized to 1
    - favorites is initialized as an empty array []
+   - tableStatus is set to 'free'
+   - currentOrder is set to null
+   - orderHistory is initialized as an empty array []
    - firstVisit, lastVisit, createdAt, and updatedAt are all set to current time
 
 2. LOGIN
@@ -122,13 +240,33 @@ CUSTOMER LIFECYCLE
    - Visit count may be incremented if 5+ hours have passed since lastVisit
    - lastVisit timestamp is updated (if visit count is incremented)
 
-3. ORDERING
+3. PLACING AN ORDER
    When a customer places an order:
+   - tableStatus changes from 'free' to 'occupied'
+   - currentOrder is populated with new OrderEntry object
+   - currentOrder.status is set to 'pending'
+   - currentOrder.paymentStatus is set to 'pending'
    - favorites array is updated with menu item IDs from the order
    - Each item ordered is added to the favorites array (duplicates allowed)
    - updatedAt timestamp is updated
 
-4. PROFILE UPDATES
+4. ORDER PROGRESS
+   As the order progresses through preparation:
+   - tableStatus updates through states: occupied → preparing → ready → served
+   - currentOrder.status updates accordingly
+   - Staff can manually update tableStatus through POS system
+   - updatedAt timestamp is updated with each change
+
+5. PAYMENT AND COMPLETION
+   When payment is completed and invoice is generated:
+   - currentOrder.paymentStatus changes to 'paid'
+   - currentOrder is appended to orderHistory array
+   - currentOrder is cleared (set to null)
+   - tableStatus returns to 'free'
+   - updatedAt timestamp is updated
+   - Customer is ready for next visit/order
+
+6. PROFILE UPDATES
    When a customer updates their profile:
    - name can be changed
    - updatedAt timestamp is updated
@@ -192,8 +330,11 @@ IMPORTANT NOTES
    - Customers collection may be shared or separate depending on configuration
 
 ================================================================================
-EXAMPLE CUSTOMER DOCUMENT
+EXAMPLE CUSTOMER DOCUMENTS
 ================================================================================
+
+EXAMPLE 1: Customer with Active Order (Currently Dining)
+---------------------------------------------------------
 
 {
   "_id": ObjectId("673b2f4a8b1234567890abcd"),
@@ -209,15 +350,247 @@ EXAMPLE CUSTOMER DOCUMENT
   ],
   "firstVisit": ISODate("2025-10-01T10:30:00.000Z"),
   "lastVisit": ISODate("2025-11-14T08:30:00.000Z"),
+  "tableStatus": "preparing",
+  "currentOrder": {
+    "_id": ObjectId("673b2f4a8b9999999999999"),
+    "items": [
+      {
+        "menuItemId": "673b2f4a8b1234567890abc1",
+        "menuItemName": "Paneer Butter Masala",
+        "quantity": 2,
+        "price": 280,
+        "total": 560,
+        "spiceLevel": "regular",
+        "notes": "Extra butter on the side"
+      },
+      {
+        "menuItemId": "673b2f4a8b1234567890abc5",
+        "menuItemName": "Garlic Naan",
+        "quantity": 4,
+        "price": 60,
+        "total": 240
+      }
+    ],
+    "subtotal": 800,
+    "tax": 64,
+    "total": 864,
+    "status": "preparing",
+    "paymentStatus": "pending",
+    "paymentMethod": null,
+    "tableNumber": "A5",
+    "floorNumber": "1",
+    "orderDate": ISODate("2025-11-14T12:30:00.000Z"),
+    "createdAt": ISODate("2025-11-14T12:30:00.000Z"),
+    "updatedAt": ISODate("2025-11-14T12:35:00.000Z")
+  },
+  "orderHistory": [
+    {
+      "_id": ObjectId("673b2f4a8b8888888888888"),
+      "items": [
+        {
+          "menuItemId": "673b2f4a8b1234567890abc1",
+          "menuItemName": "Paneer Butter Masala",
+          "quantity": 1,
+          "price": 280,
+          "total": 280,
+          "spiceLevel": "less-spicy"
+        }
+      ],
+      "subtotal": 280,
+      "tax": 22.4,
+      "total": 302.4,
+      "status": "completed",
+      "paymentStatus": "paid",
+      "paymentMethod": "upi",
+      "tableNumber": "B3",
+      "floorNumber": "1",
+      "orderDate": ISODate("2025-11-01T18:00:00.000Z"),
+      "createdAt": ISODate("2025-11-01T18:00:00.000Z"),
+      "updatedAt": ISODate("2025-11-01T18:45:00.000Z")
+    }
+  ],
   "createdAt": ISODate("2025-10-01T10:30:00.000Z"),
-  "updatedAt": ISODate("2025-11-14T08:30:00.000Z")
+  "updatedAt": ISODate("2025-11-14T12:35:00.000Z")
 }
 
 In this example:
 - Customer has visited 5 times
 - Has ordered 5 items total (item abc1 ordered 3 times, showing as most favorite)
-- First visited on October 1, 2025
-- Last visited on November 14, 2025
+- tableStatus is "preparing" (order being prepared in kitchen)
+- currentOrder shows active order worth ₹864 with 2 items
+- orderHistory contains 1 completed order from previous visit (paid)
+- Currently dining at Table A5, Floor 1
+
+EXAMPLE 2: Customer After Payment (Table Free)
+-----------------------------------------------
+
+{
+  "_id": ObjectId("673b2f4a8b1234567890abcd"),
+  "name": "Rahul Kumar",
+  "phoneNumber": "9876543210",
+  "visitCount": 5,
+  "favorites": [
+    "673b2f4a8b1234567890abc1",
+    "673b2f4a8b1234567890abc2",
+    "673b2f4a8b1234567890abc1",
+    "673b2f4a8b1234567890abc3",
+    "673b2f4a8b1234567890abc1",
+    "673b2f4a8b1234567890abc1",
+    "673b2f4a8b1234567890abc5"
+  ],
+  "firstVisit": ISODate("2025-10-01T10:30:00.000Z"),
+  "lastVisit": ISODate("2025-11-14T08:30:00.000Z"),
+  "tableStatus": "free",
+  "currentOrder": null,
+  "orderHistory": [
+    {
+      "_id": ObjectId("673b2f4a8b8888888888888"),
+      "items": [
+        {
+          "menuItemId": "673b2f4a8b1234567890abc1",
+          "menuItemName": "Paneer Butter Masala",
+          "quantity": 1,
+          "price": 280,
+          "total": 280,
+          "spiceLevel": "less-spicy"
+        }
+      ],
+      "subtotal": 280,
+      "tax": 22.4,
+      "total": 302.4,
+      "status": "completed",
+      "paymentStatus": "paid",
+      "paymentMethod": "upi",
+      "tableNumber": "B3",
+      "floorNumber": "1",
+      "orderDate": ISODate("2025-11-01T18:00:00.000Z"),
+      "createdAt": ISODate("2025-11-01T18:00:00.000Z"),
+      "updatedAt": ISODate("2025-11-01T18:45:00.000Z")
+    },
+    {
+      "_id": ObjectId("673b2f4a8b9999999999999"),
+      "items": [
+        {
+          "menuItemId": "673b2f4a8b1234567890abc1",
+          "menuItemName": "Paneer Butter Masala",
+          "quantity": 2,
+          "price": 280,
+          "total": 560,
+          "spiceLevel": "regular",
+          "notes": "Extra butter on the side"
+        },
+        {
+          "menuItemId": "673b2f4a8b1234567890abc5",
+          "menuItemName": "Garlic Naan",
+          "quantity": 4,
+          "price": 60,
+          "total": 240
+        }
+      ],
+      "subtotal": 800,
+      "tax": 64,
+      "total": 864,
+      "status": "completed",
+      "paymentStatus": "paid",
+      "paymentMethod": "cash",
+      "tableNumber": "A5",
+      "floorNumber": "1",
+      "orderDate": ISODate("2025-11-14T12:30:00.000Z"),
+      "createdAt": ISODate("2025-11-14T12:30:00.000Z"),
+      "updatedAt": ISODate("2025-11-14T13:15:00.000Z")
+    }
+  ],
+  "createdAt": ISODate("2025-10-01T10:30:00.000Z"),
+  "updatedAt": ISODate("2025-11-14T13:15:00.000Z")
+}
+
+In this example:
+- Same customer after payment completion
+- tableStatus is now "free" (payment completed, ready for next visit)
+- currentOrder is null (no active order)
+- orderHistory now contains 2 completed orders
+- Previous currentOrder has been moved to orderHistory with paymentStatus "paid"
+- favorites array updated with new items from the completed order
+
+================================================================================
+MONGODB DOCUMENT TREE STRUCTURE
+================================================================================
+
+Customer Document
+├── _id: ObjectId                          (Auto-generated unique identifier)
+├── name: String                           (Customer full name)
+├── phoneNumber: String                    (10+ digit phone, unique, login ID)
+├── visitCount: Number                     (Number of visits)
+├── favorites: Array<String>               (Menu item IDs, duplicates allowed)
+├── firstVisit: Date                       (First registration timestamp)
+├── lastVisit: Date                        (Most recent visit timestamp)
+├── tableStatus: Enum String               (Order/service status)
+│   ├── 'free'                            (No active order)
+│   ├── 'occupied'                        (Order placed)
+│   ├── 'preparing'                       (Being prepared)
+│   ├── 'ready'                           (Ready to serve)
+│   └── 'served'                          (Served to customer)
+├── currentOrder: OrderEntry | null        (Active order, if any)
+│   ├── _id: ObjectId
+│   ├── items: Array<OrderItem>
+│   │   ├── menuItemId: String
+│   │   ├── menuItemName: String
+│   │   ├── quantity: Number
+│   │   ├── price: Number
+│   │   ├── total: Number
+│   │   ├── spiceLevel?: Enum String
+│   │   └── notes?: String
+│   ├── subtotal: Number
+│   ├── tax: Number
+│   ├── total: Number
+│   ├── status: Enum String
+│   │   ├── 'pending'
+│   │   ├── 'confirmed'
+│   │   ├── 'preparing'
+│   │   ├── 'completed'
+│   │   └── 'cancelled'
+│   ├── paymentStatus: Enum String
+│   │   ├── 'pending'
+│   │   ├── 'paid'
+│   │   └── 'failed'
+│   ├── paymentMethod?: String
+│   ├── tableNumber?: String
+│   ├── floorNumber?: String
+│   ├── orderDate: Date
+│   ├── createdAt: Date
+│   └── updatedAt: Date
+├── orderHistory: Array<OrderEntry>        (Past completed orders)
+│   └── [Same structure as currentOrder]
+├── createdAt: Date                        (Document creation timestamp)
+└── updatedAt: Date                        (Last modification timestamp)
+
+================================================================================
+KEY IMPLEMENTATION NOTES
+================================================================================
+
+ORDER WORKFLOW:
+1. Customer places order → tableStatus: 'occupied', currentOrder populated
+2. Kitchen prepares → tableStatus: 'preparing'
+3. Order ready → tableStatus: 'ready'
+4. Order served → tableStatus: 'served'
+5. Payment completed → currentOrder moved to orderHistory, currentOrder = null,
+                       tableStatus: 'free'
+
+DATA PERSISTENCE:
+- All order data persists in the same customer document
+- No separate order collection needed for customer orders
+- Order history grows with each completed order
+- favorites array tracks all-time ordering patterns
+
+CONCURRENT ORDERS:
+- Only ONE currentOrder per customer at a time
+- Previous order must be completed before new order
+- Multiple items can exist in a single order
+
+STATE MANAGEMENT:
+- tableStatus and currentOrder.status work together
+- paymentStatus determines when order moves to history
+- All state changes update updatedAt timestamp
 
 ================================================================================
 END OF DOCUMENT
