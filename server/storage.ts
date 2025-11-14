@@ -360,6 +360,11 @@ export interface IStorage {
   getOrder(id: string): Promise<Order | undefined>;
   updateOrderStatus(id: string, status: Order['status']): Promise<void>;
   updatePaymentStatus(id: string, paymentStatus: Order['paymentStatus'], paymentMethod?: string): Promise<void>;
+  deleteOrderFromHistory(customerId: string, orderId: string): Promise<void>;
+  deleteAllOrdersFromHistory(customerId: string): Promise<void>;
+  addFavorite(customerId: string, menuItemId: string): Promise<void>;
+  removeFavorite(customerId: string, menuItemId: string): Promise<void>;
+  getCustomerFavorites(customerId: string): Promise<string[]>;
 }
 
 export class MongoStorage implements IStorage {
@@ -940,6 +945,89 @@ export class MongoStorage implements IStorage {
     } catch (error) {
       console.error("Error updating payment status:", error);
       throw error;
+    }
+  }
+
+  async deleteOrderFromHistory(customerId: string, orderId: string): Promise<void> {
+    try {
+      const customerObjectId = new ObjectId(customerId);
+      const orderObjectId = new ObjectId(orderId);
+      
+      await this.ordersCollection.updateOne(
+        { customerId: customerObjectId },
+        {
+          $pull: {
+            orders: { _id: orderObjectId }
+          },
+          $set: {
+            updatedAt: new Date()
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error deleting order from history:", error);
+      throw error;
+    }
+  }
+
+  async deleteAllOrdersFromHistory(customerId: string): Promise<void> {
+    try {
+      const customerObjectId = new ObjectId(customerId);
+      
+      await this.ordersCollection.updateOne(
+        { customerId: customerObjectId },
+        {
+          $set: {
+            orders: [],
+            updatedAt: new Date()
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error deleting all orders from history:", error);
+      throw error;
+    }
+  }
+
+  async addFavorite(customerId: string, menuItemId: string): Promise<void> {
+    try {
+      await this.customersCollection.updateOne(
+        { _id: new ObjectId(customerId) },
+        {
+          $push: { favorites: menuItemId },
+          $set: { updatedAt: new Date() }
+        }
+      );
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      throw error;
+    }
+  }
+
+  async removeFavorite(customerId: string, menuItemId: string): Promise<void> {
+    try {
+      await this.customersCollection.updateOne(
+        { _id: new ObjectId(customerId) },
+        {
+          $pull: { favorites: menuItemId },
+          $set: { updatedAt: new Date() }
+        }
+      );
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      throw error;
+    }
+  }
+
+  async getCustomerFavorites(customerId: string): Promise<string[]> {
+    try {
+      const customer = await this.customersCollection.findOne({
+        _id: new ObjectId(customerId)
+      });
+      return customer?.favorites || [];
+    } catch (error) {
+      console.error("Error getting customer favorites:", error);
+      return [];
     }
   }
 
