@@ -14,6 +14,7 @@ import {
   Mic,
   MicOff,
   User,
+  Heart,
 } from "lucide-react";
 import { FaInstagram } from "react-icons/fa";
 import { useLocation } from "wouter";
@@ -25,6 +26,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import DishCard from "@/components/dish-card";
 import { Cart } from "@/components/Cart";
 import { useCart } from "@/hooks/useCart";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { CustomerProfileDialog } from "@/components/customer-profile-dialog";
 import { ISTClock } from "@/components/ist-clock";
@@ -172,8 +174,10 @@ export default function Menu() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<MenuItem | null>(null);
   const [itemPreferences, setItemPreferences] = useState<Record<string, { spiceLevel: string; notes: string }>>({});
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   
   const { addToCart, cart, updateQuantity, removeFromCart, updateNotes, updateSpiceLevel, setSeatingInfo } = useCart();
+  const { toggleFavorite, isFavorite, favoritesCount } = useFavorites();
 
   // Set table and floor info on component mount
   useEffect(() => {
@@ -409,6 +413,31 @@ export default function Menu() {
                   <User className="h-6 w-6 sm:h-7 sm:w-7" />
                 </Button>
               )}
+
+              {/* Favorites Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                className={`hover:bg-transparent relative ${showFavoritesOnly ? 'toggle-elevate toggle-elevated' : ''}`}
+                style={{ color: "var(--elegant-gold)" }}
+                data-testid="button-favorites-toggle"
+              >
+                <Heart
+                  className={`h-6 w-6 sm:h-7 sm:w-7 ${
+                    showFavoritesOnly ? 'fill-red-500 text-red-500' : ''
+                  }`}
+                />
+                {favoritesCount > 0 && (
+                  <Badge
+                    variant="default"
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                    style={{ backgroundColor: 'var(--mings-orange)' }}
+                  >
+                    {favoritesCount}
+                  </Badge>
+                )}
+              </Button>
 
               {/* Cart Button */}
               <Cart />
