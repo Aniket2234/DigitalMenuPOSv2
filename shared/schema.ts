@@ -43,6 +43,7 @@ export interface Customer {
   favorites: string[];
   firstVisit: Date;
   lastVisit: Date;
+  loginStatus: 'loggedin' | 'loggedout';
   tableStatus: 'free' | 'occupied' | 'preparing' | 'ready' | 'served';
   currentOrder?: OrderEntry | null;
   orderHistory: OrderEntry[];

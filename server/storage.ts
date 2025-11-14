@@ -354,6 +354,7 @@ export interface IStorage {
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomerName(phoneNumber: string, name: string): Promise<Customer | undefined>;
   incrementVisitCount(phoneNumber: string): Promise<void>;
+  updateLoginStatus(phoneNumber: string, loginStatus: 'loggedin' | 'loggedout'): Promise<Customer | undefined>;
 
   createOrder(order: InsertOrder): Promise<Order>;
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
@@ -649,6 +650,10 @@ export class MongoStorage implements IStorage {
         favorites: [],
         firstVisit: now,
         lastVisit: now,
+        loginStatus: 'loggedin',
+        tableStatus: 'free',
+        currentOrder: null,
+        orderHistory: [],
         createdAt: now,
         updatedAt: now,
       };
@@ -703,6 +708,23 @@ export class MongoStorage implements IStorage {
     } catch (error) {
       console.error("Error incrementing visit count:", error);
       throw error;
+    }
+  }
+
+  async updateLoginStatus(phoneNumber: string, loginStatus: 'loggedin' | 'loggedout'): Promise<Customer | undefined> {
+    try {
+      const now = new Date();
+      const updatedCustomer = await this.customersCollection.findOneAndUpdate(
+        { phoneNumber },
+        {
+          $set: { loginStatus, updatedAt: now }
+        },
+        { returnDocument: 'after' }
+      );
+      return updatedCustomer || undefined;
+    } catch (error) {
+      console.error("Error updating login status:", error);
+      return undefined;
     }
   }
 

@@ -148,6 +148,7 @@ MongoDB Database Structure
     │   │       ├── visitCount (number)
     │   │       ├── firstVisit (Date)
     │   │       ├── lastVisit (Date)
+    │   │       ├── loginStatus (string: 'loggedin' | 'loggedout') 🔐 NEW
     │   │       ├── createdAt (Date)
     │   │       └── updatedAt (Date)
     │   │
@@ -212,6 +213,153 @@ All timestamps (orderDate, createdAt, updatedAt) are:
 - Stored as UTC in the database
 - Displayed in Indian Standard Time (IST) to users
 - Format: DD/MM/YYYY HH:MM
+
+✅ LOGIN STATUS TRACKING (NEW)
+Each customer now has a login status field to track their current session state.
+
+================================================================================
+LOGIN STATUS FIELD DOCUMENTATION
+================================================================================
+
+📍 LOCATION IN MONGODB
+----------------------
+MongoDB Database: restaurant_pos (formerly mingsdb)
+└── Collection: customers
+    └── Document: { phoneNumber: "9876543210" }
+        └── Field: loginStatus: "loggedin" | "loggedout"
+
+FIELD DETAILS
+-------------
+- **Field Name**: loginStatus
+- **Type**: String (enumerated type)
+- **Allowed Values**: 
+  * "loggedin" - Customer is currently logged into the digital menu
+  * "loggedout" - Customer has logged out
+- **Default Value**: "loggedin" (automatically set when customer first registers)
+- **Required**: Yes (added to all customer documents)
+- **Location**: restaurant_pos.customers[].loginStatus
+
+PURPOSE
+-------
+The loginStatus field tracks whether a customer is currently logged into the 
+digital menu system. This enables:
+1. Session management and tracking
+2. Enforcing single-device login policies
+3. Analytics on concurrent active users
+4. Security auditing
+5. Quick status checks without session tables
+
+STATE TRANSITIONS
+-----------------
+1. Customer Registration → loginStatus = "loggedin"
+2. Customer Login → loginStatus = "loggedin"
+3. Customer Logout → loginStatus = "loggedout"
+4. Session Timeout → loginStatus remains unchanged (manual update required)
+
+DATABASE OPERATIONS
+-------------------
+
+Create Customer (initial login status):
+db.customers.insertOne({
+  name: "Rajesh Kumar",
+  phoneNumber: "9876543210",
+  visitCount: 1,
+  favorites: [],
+  firstVisit: ISODate("2025-11-14T12:00:00Z"),
+  lastVisit: ISODate("2025-11-14T12:00:00Z"),
+  loginStatus: "loggedin",  ← Automatically set on registration
+  createdAt: ISODate("2025-11-14T12:00:00Z"),
+  updatedAt: ISODate("2025-11-14T12:00:00Z")
+})
+
+Update Login Status:
+db.customers.updateOne(
+  { phoneNumber: "9876543210" },
+  { 
+    $set: { 
+      loginStatus: "loggedin",  // or "loggedout"
+      updatedAt: ISODate("2025-11-14T12:30:00Z")
+    }
+  }
+)
+
+Query Logged-In Customers:
+db.customers.find({ loginStatus: "loggedin" })
+
+Query Logged-Out Customers:
+db.customers.find({ loginStatus: "loggedout" })
+
+API METHODS
+-----------
+The following storage methods interact with loginStatus:
+
+1. createCustomer(customer)
+   - Creates new customer with loginStatus = "loggedin"
+   - Location: server/storage.ts, line ~655
+
+2. updateLoginStatus(phoneNumber, loginStatus)
+   - Updates customer's login status to "loggedin" or "loggedout"
+   - Parameters:
+     * phoneNumber: string (customer's phone number)
+     * loginStatus: "loggedin" | "loggedout"
+   - Returns: Updated Customer object or undefined
+   - Location: server/storage.ts, line ~714
+
+3. getCustomerByPhone(phoneNumber)
+   - Retrieves customer including their current loginStatus
+   - Location: server/storage.ts, line ~633
+
+EXAMPLE CUSTOMER DOCUMENT
+--------------------------
+{
+  "_id": "507f191e810c19729de860ea",
+  "name": "Rajesh Kumar",
+  "phoneNumber": "9876543210",
+  "visitCount": 5,
+  "favorites": ["item123", "item456"],
+  "firstVisit": "2025-01-15T10:30:00.000Z",
+  "lastVisit": "2025-11-14T12:00:00.000Z",
+  "loginStatus": "loggedin",  ← Current login status
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "updatedAt": "2025-11-14T12:00:00.000Z"
+}
+
+TREE LOCATION VISUALIZATION
+----------------------------
+restaurant_pos (Database)
+│
+├── customers (Collection)
+│   ├── Document 1 (phoneNumber: "9876543210")
+│   │   ├── _id: ObjectId("507f191e810c19729de860ea")
+│   │   ├── name: "Rajesh Kumar"
+│   │   ├── phoneNumber: "9876543210"
+│   │   ├── visitCount: 5
+│   │   ├── favorites: ["item123", "item456"]
+│   │   ├── firstVisit: Date(...)
+│   │   ├── lastVisit: Date(...)
+│   │   ├── loginStatus: "loggedin" 🔐 ← HERE
+│   │   ├── createdAt: Date(...)
+│   │   └── updatedAt: Date(...)
+│   │
+│   └── Document 2 (phoneNumber: "9123456789")
+│       ├── _id: ObjectId("...")
+│       ├── name: "Priya Sharma"
+│       ├── phoneNumber: "9123456789"
+│       ├── loginStatus: "loggedout" 🔐 ← HERE
+│       └── ...
+│
+└── digital_menu_customer_orders (Collection)
+    └── ...
+
+CHANGE LOG ENTRY
+----------------
+Date: 2025-11-14
+Collection: customers
+Change: Added loginStatus field
+Description: New field to track customer login/logout state
+            - Type: String enum ('loggedin' | 'loggedout')
+            - Default: 'loggedin' on customer creation
+            - Updated via updateLoginStatus() method
 
 ================================================================================
 IMPLEMENTATION DETAILS
