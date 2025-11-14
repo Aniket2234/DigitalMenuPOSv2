@@ -402,7 +402,7 @@ export class MongoStorage implements IStorage {
 
   constructor(connectionString: string) {
     this.client = new MongoClient(connectionString);
-    this.db = this.client.db("mingsdb");
+    this.db = this.client.db("restaurant_pos");
     this.categoryCollections = new Map();
 
     // Initialize collections for each category with correct collection names
