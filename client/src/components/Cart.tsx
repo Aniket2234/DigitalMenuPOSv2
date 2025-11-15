@@ -47,7 +47,7 @@ export function Cart() {
     markItemsAsOrdered,
     hasUnorderedItems,
   } = useCart();
-  const { customer } = useCustomer();
+  const { customer, setCustomer } = useCustomer();
   const { tableStatus, isLoading: isLoadingTableStatus } = useTableStatus(customer?.phoneNumber ?? null);
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -63,7 +63,12 @@ export function Cart() {
       const response = await apiRequest('POST', '/api/orders', orderData);
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Fetch updated customer data to get the currentOrder
+      const customerResponse = await apiRequest('GET', `/api/customers/${customer?.phoneNumber}`);
+      const updatedCustomer = await customerResponse.json();
+      setCustomer(updatedCustomer);
+      
       queryClient.invalidateQueries({ queryKey: ['/api/customers', customer?._id] });
       queryClient.invalidateQueries({ queryKey: ['/api/orders/customer', customer?._id?.toString()] });
     },
