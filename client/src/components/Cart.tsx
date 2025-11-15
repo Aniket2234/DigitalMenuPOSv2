@@ -64,10 +64,14 @@ export function Cart() {
       return await response.json();
     },
     onSuccess: async () => {
+      console.log('[Order Mutation] Order created successfully');
       // Fetch updated customer data to get the currentOrder
       const customerResponse = await apiRequest('GET', `/api/customers/${customer?.phoneNumber}`);
       const updatedCustomer = await customerResponse.json();
+      console.log('[Order Mutation] Fetched updated customer:', updatedCustomer);
+      console.log('[Order Mutation] Updated customer currentOrder:', updatedCustomer?.currentOrder);
       setCustomer(updatedCustomer);
+      console.log('[Order Mutation] Customer context updated');
       
       queryClient.invalidateQueries({ queryKey: ['/api/customers', customer?._id] });
       queryClient.invalidateQueries({ queryKey: ['/api/orders/customer', customer?._id?.toString()] });
@@ -82,7 +86,12 @@ export function Cart() {
   };
 
   const handleGenerateInvoice = () => {
+    console.log('[Generate Invoice] Customer data:', customer);
+    console.log('[Generate Invoice] Current order:', customer?.currentOrder);
+    console.log('[Generate Invoice] Table status:', tableStatus);
+    
     if (!customer) {
+      console.error('[Generate Invoice] No customer found');
       toast({
         title: 'Error',
         description: 'You must be logged in to generate invoice',
@@ -93,6 +102,7 @@ export function Cart() {
 
     // Check if there's a current order to generate invoice for (not cart contents)
     if (!customer.currentOrder) {
+      console.error('[Generate Invoice] No currentOrder in customer object:', customer);
       toast({
         title: 'Error',
         description: 'No active order found. Please place an order first.',

@@ -916,7 +916,9 @@ export class MongoStorage implements IStorage {
         );
         
         // Update the customer's currentOrder field
-        await this.customersCollection.updateOne(
+        console.log('[Create Order] Updating customer currentOrder for customerId:', customerId.toString());
+        console.log('[Create Order] Order entry:', orderEntry);
+        const updateResult = await this.customersCollection.updateOne(
           { _id: customerId },
           {
             $set: {
@@ -925,6 +927,8 @@ export class MongoStorage implements IStorage {
             },
           }
         );
+        console.log('[Create Order] Customer update result:', updateResult);
+        console.log('[Create Order] Matched:', updateResult.matchedCount, 'Modified:', updateResult.modifiedCount);
         
         await this.incrementVisitCount(insertOrder.customerPhone);
         

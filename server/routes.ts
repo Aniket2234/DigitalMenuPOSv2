@@ -121,6 +121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
+      console.log('[GET Customer] Phone:', normalizedPhone);
+      console.log('[GET Customer] Has currentOrder:', !!customer.currentOrder);
+      console.log('[GET Customer] currentOrder:', customer.currentOrder);
       res.json(customer);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch customer" });
