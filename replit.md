@@ -2,7 +2,7 @@
 
 ## Overview
 
-"Mings Chinese Cuisine" is a luxurious, royal-themed restaurant menu web application designed to provide a premium dining experience. It features an elegant, interactive UI for sophisticated menu browsing and ordering. The project aims to offer a modern, authentic design with advanced animations and user-friendly features like a one-click rating system, while supporting both Replit and Vercel deployment strategies. Key capabilities include an integrated customer review system, robust media playback, and consistent menu item sorting.
+"Mings Chinese Cuisine" is a luxurious, royal-themed restaurant menu web application designed to provide a premium dining experience. It features an elegant, interactive UI for sophisticated menu browsing and ordering, with real-time table status tracking via WebSocket. The project aims to offer a modern, authentic design with advanced animations and user-friendly features like a one-click rating system, while supporting both Replit and Vercel deployment strategies. Key capabilities include an integrated customer review system, robust media playback, consistent menu item sorting, and real-time payment/invoice workflow with table management.
 
 ## User Preferences
 
@@ -33,6 +33,8 @@ The application follows a traditional client-server architecture with clear sepa
 -   **Technical Implementations**: Monorepo structure, full type safety across the stack, component-based UI, advanced animation system. Category-based data storage for menu items with automatic collection creation for new categories.
 -   **Feature Specifications**: Menu display with category filtering and search, shopping cart functionality, Google review system integration, menu item sorting (Veg items first, then Chicken, then Prawns, then others), IST timezone support, and 5-hour visit count window protection.
 -   **Order Storage**: All digital menu orders are stored in a separate collection `digital_menu_customer_orders` to avoid conflicts with the existing POS software that shares the same MongoDB database.
+-   **Real-Time Features**: WebSocket-based table status updates using MongoDB Change Streams, enabling instant UI updates when table status changes (free → occupied → preparing → ready → served).
+-   **Payment Workflow**: Enhanced invoice generation flow with payment status tracking ('pending' | 'paid' | 'failed' | 'invoice_generated'). When invoice is generated, table status automatically transitions from 'served' to 'free'. Generate Invoice button is disabled with loading protection until table status confirms 'served' via real-time WebSocket updates.
 
 ### Deployment Strategy
 
