@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { setupWebSocket } from "./websocket";
 
 const app = express();
 app.use(express.json());
@@ -38,11 +39,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize MongoDB connection
+  // Initialize MongoDB connection first
   await storage.connect();
   log("Connected to MongoDB");
   
   const server = await registerRoutes(app);
+
+  // Set up WebSocket AFTER MongoDB is connected
+  // This ensures getDatabase() has a valid db reference
+  setupWebSocket(server);
+  log("WebSocket server initialized at /ws/table-status");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

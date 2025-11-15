@@ -29,6 +29,7 @@ import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCustomer } from "@/contexts/CustomerContext";
 import { useToast } from "@/hooks/use-toast";
+import { useTableStatus, getStatusColor, getStatusText } from "@/hooks/useTableStatus";
 import { CustomerProfileDialog } from "@/components/customer-profile-dialog";
 import { ISTClock } from "@/components/ist-clock";
 import type { MenuItem } from "@shared/schema";
@@ -180,6 +181,9 @@ export default function Menu() {
   const { addToCart, cart, updateQuantity, removeFromCart, updateNotes, updateSpiceLevel, setSeatingInfo } = useCart();
   const { toggleFavorite, isFavorite, favoritesCount } = useFavorites();
   const { toast } = useToast();
+
+  // Real-time table status updates
+  const { tableStatus, tableNumber, floorNumber } = useTableStatus(customer?.phoneNumber || null);
 
   // Set table and floor info on component mount
   useEffect(() => {
@@ -603,10 +607,20 @@ export default function Menu() {
         )}
       </header>
 
-      {/* Table Number and Floor Display */}
+      {/* Table Number and Floor Display with Status */}
       <div className="bg-gray-50 dark:bg-gray-900 border-b dark:border-gray-800">
         <div className="container mx-auto px-3 sm:px-4 py-3">
           <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Status:</span>
+              <div className="flex items-center gap-2" data-testid="table-status-indicator">
+                <div 
+                  className={`w-4 h-4 rounded-full ${getStatusColor(tableStatus)}`}
+                  title={getStatusText(tableStatus)}
+                />
+                <span className="text-sm font-medium text-foreground">{getStatusText(tableStatus)}</span>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Table:</span>
               <Badge 
@@ -614,7 +628,7 @@ export default function Menu() {
                 className="text-sm font-semibold"
                 data-testid="badge-table-number"
               >
-                T1
+                {tableNumber}
               </Badge>
             </div>
             <div className="flex items-center gap-2">
@@ -624,7 +638,7 @@ export default function Menu() {
                 className="text-sm font-semibold"
                 data-testid="badge-floor"
               >
-                Ground Floor
+                {floorNumber}
               </Badge>
             </div>
           </div>

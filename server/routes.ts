@@ -160,6 +160,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/customers/:phoneNumber/table-status", async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const { normalizePhoneNumber } = await import("@shared/utils/phoneNormalization");
+      const normalizedPhone = normalizePhoneNumber(phoneNumber);
+      
+      const status = await storage.getTableStatus(normalizedPhone);
+      
+      if (!status) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting table status:", error);
+      res.status(500).json({ message: "Failed to get table status" });
+    }
+  });
+
   app.post("/api/customers/:id/favorites", async (req, res) => {
     try {
       const { id } = req.params;

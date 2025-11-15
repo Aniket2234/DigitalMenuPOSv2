@@ -1235,6 +1235,30 @@ export class MongoStorage implements IStorage {
     }
   }
 
+  getDatabase(): Db {
+    return this.db;
+  }
+
+  async getTableStatus(phoneNumber: string): Promise<{ tableStatus: string; tableNumber: string; floorNumber: string } | undefined> {
+    try {
+      const customer = await this.customersCollection.findOne(
+        { phoneNumber },
+        { projection: { tableStatus: 1, tableNumber: 1, floorNumber: 1, _id: 0 } }
+      );
+      if (customer) {
+        return {
+          tableStatus: customer.tableStatus || 'free',
+          tableNumber: customer.tableNumber || 'NA',
+          floorNumber: customer.floorNumber || 'NA'
+        };
+      }
+      return undefined;
+    } catch (error) {
+      console.error("Error getting table status:", error);
+      return undefined;
+    }
+  }
+
   private sortMenuItems(items: MenuItem[]): MenuItem[] {
     return items.sort((a, b) => {
       const aName = a.name.toLowerCase();
