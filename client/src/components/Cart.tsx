@@ -489,7 +489,6 @@ export function Cart() {
                     variant="destructive"
                     className="w-full"
                     onClick={clearCart}
-                    disabled={cart.items.some(item => item.isOrdered)}
                     data-testid="button-clear-cart"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
