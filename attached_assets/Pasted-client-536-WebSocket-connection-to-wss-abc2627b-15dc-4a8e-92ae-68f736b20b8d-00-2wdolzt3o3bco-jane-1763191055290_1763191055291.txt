@@ -1,0 +1,33 @@
+client:536 WebSocket connection to 'wss://abc2627b-15dc-4a8e-92ae-68f736b20b8d-00-2wdolzt3o3bco.janeway.replit.dev/?token=UpAlaNZ24GK6' failed: 
+setupWebSocket @ client:536
+(anonymous) @ client:531
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=UpAlaNZ24GK6' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+setupWebSocket @ client:536
+fallback @ client:509
+(anonymous) @ client:555
+chunk-RPCDYKBN.js?v=77e3911e:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+useTableStatus.ts:41 WebSocket connected for table status updates
+useTableStatus.ts:41 WebSocket connected for table status updates
+Cart.tsx:89 [Generate Invoice] Customer data: {_id: '691826d4c1d4b69baa1ae478', name: 'ANIKET', phoneNumber: '7507219775', visitCount: 1, favorites: Array(0), …}
+Cart.tsx:90 [Generate Invoice] Current order: null
+Cart.tsx:91 [Generate Invoice] Table status: served
+Cart.tsx:105 [Generate Invoice] No currentOrder in customer object: {_id: '691826d4c1d4b69baa1ae478', name: 'ANIKET', phoneNumber: '7507219775', visitCount: 1, favorites: Array(0), …}
+handleGenerateInvoice @ Cart.tsx:105
+callCallback2 @ chunk-RPCDYKBN.js?v=77e3911e:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=77e3911e:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=77e3911e:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=77e3911e:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=77e3911e:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=77e3911e:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=77e3911e:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=77e3911e:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=77e3911e:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=77e3911e:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=77e3911e:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=77e3911e:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=77e3911e:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=77e3911e:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=77e3911e:5449

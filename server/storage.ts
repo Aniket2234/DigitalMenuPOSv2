@@ -691,6 +691,10 @@ export class MongoStorage implements IStorage {
   async getCustomerByPhone(phoneNumber: string): Promise<Customer | undefined> {
     try {
       const customer = await this.customersCollection.findOne({ phoneNumber });
+      console.log('[getCustomerByPhone] Phone:', phoneNumber);
+      console.log('[getCustomerByPhone] Customer found:', !!customer);
+      console.log('[getCustomerByPhone] Customer currentOrder:', customer?.currentOrder);
+      console.log('[getCustomerByPhone] Customer ID:', customer?._id);
       return customer || undefined;
     } catch (error) {
       console.error("Error getting customer by phone:", error);

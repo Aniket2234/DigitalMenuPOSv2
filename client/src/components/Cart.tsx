@@ -85,7 +85,7 @@ export function Cart() {
     });
   };
 
-  const handleGenerateInvoice = () => {
+  const handleGenerateInvoice = async () => {
     console.log('[Generate Invoice] Customer data:', customer);
     console.log('[Generate Invoice] Current order:', customer?.currentOrder);
     console.log('[Generate Invoice] Table status:', tableStatus);
@@ -95,17 +95,6 @@ export function Cart() {
       toast({
         title: 'Error',
         description: 'You must be logged in to generate invoice',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Check if there's a current order to generate invoice for (not cart contents)
-    if (!customer.currentOrder) {
-      console.error('[Generate Invoice] No currentOrder in customer object:', customer);
-      toast({
-        title: 'Error',
-        description: 'No active order found. Please place an order first.',
         variant: 'destructive',
       });
       return;
@@ -121,7 +110,33 @@ export function Cart() {
       return;
     }
 
-    setPaymentDialogOpen(true);
+    // Fetch the latest customer data to get the current order
+    try {
+      const response = await apiRequest('GET', `/api/customers/${customer.phoneNumber}`);
+      const latestCustomer = await response.json();
+      console.log('[Generate Invoice] Fetched latest customer:', latestCustomer);
+      
+      if (!latestCustomer.currentOrder) {
+        console.error('[Generate Invoice] No currentOrder in latest customer data');
+        toast({
+          title: 'Error',
+          description: 'No active order found. Please place an order first.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Update the customer context with the latest data
+      setCustomer(latestCustomer);
+      setPaymentDialogOpen(true);
+    } catch (error) {
+      console.error('[Generate Invoice] Error fetching customer:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch order information. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleOrder = async () => {
