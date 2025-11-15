@@ -104,7 +104,7 @@ export function useTableStatus(phoneNumber: string | null) {
   }, [phoneNumber, queryClient]);
 
   return {
-    tableStatus: tableStatus?.tableStatus || 'free',
+    tableStatus: isLoading ? undefined : (tableStatus?.tableStatus || 'free'),
     tableNumber: tableStatus?.tableNumber || 'NA',
     floorNumber: tableStatus?.floorNumber || 'NA',
     isLoading,

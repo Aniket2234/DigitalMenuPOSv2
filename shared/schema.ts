@@ -70,7 +70,7 @@ export interface OrderEntry {
   tax: number;
   total: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'completed' | 'cancelled';
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentStatus: 'pending' | 'invoice_generated' | 'paid' | 'failed';
   paymentMethod?: string;
   tableNumber?: string;
   floorNumber?: string;
@@ -99,7 +99,7 @@ export interface Order {
   tax: number;
   total: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'completed' | 'cancelled';
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentStatus: 'pending' | 'invoice_generated' | 'paid' | 'failed';
   paymentMethod?: string;
   tableNumber?: string;
   floorNumber?: string;
@@ -154,7 +154,7 @@ export const insertOrderSchema = z.object({
   tax: z.number().nonnegative(),
   total: z.number().positive(),
   status: z.enum(['pending', 'confirmed', 'preparing', 'completed', 'cancelled']).default('pending'),
-  paymentStatus: z.enum(['pending', 'paid', 'failed']).default('pending'),
+  paymentStatus: z.enum(['pending', 'invoice_generated', 'paid', 'failed']).default('pending'),
   paymentMethod: z.string().optional(),
   tableNumber: z.string().optional(),
   floorNumber: z.string().optional(),

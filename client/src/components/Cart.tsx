@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/hooks/useCart';
+import { useTableStatus } from '@/hooks/useTableStatus';
 import {
   Sheet,
   SheetContent,
@@ -47,6 +48,7 @@ export function Cart() {
     hasUnorderedItems,
   } = useCart();
   const { customer } = useCustomer();
+  const { tableStatus, isLoading: isLoadingTableStatus } = useTableStatus(customer?.phoneNumber ?? null);
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
@@ -84,10 +86,21 @@ export function Cart() {
       return;
     }
 
-    if (cart.items.filter(item => item.quantity > 0).length === 0) {
+    // Check if there's a current order to generate invoice for (not cart contents)
+    if (!customer.currentOrder) {
       toast({
         title: 'Error',
-        description: 'Your cart is empty',
+        description: 'No active order found. Please place an order first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check if table status is 'served' - invoice can only be generated when food is served
+    if (tableStatus !== 'served') {
+      toast({
+        title: 'Cannot Generate Invoice',
+        description: 'Invoice can only be generated once your order has been served.',
         variant: 'destructive',
       });
       return;
@@ -199,62 +212,61 @@ export function Cart() {
       return;
     }
 
-    if (cart.items.filter(item => item.quantity > 0).length === 0) {
+    // Check if there's a current order to generate invoice for
+    if (!customer.currentOrder || !customer.currentOrder._id) {
       toast({
         title: 'Error',
-        description: 'Your cart is empty',
+        description: 'No active order found. Please place an order first.',
         variant: 'destructive',
       });
       return;
     }
 
-    const subtotal = cart.total;
-    const taxRate = 0.05;
-    const tax = subtotal * taxRate;
-    const total = subtotal + tax;
-
-    const orderData = {
-      customerId: typeof customer!._id === 'string' ? customer!._id : customer!._id.toString(),
-      customerName: customer!.name,
-      customerPhone: customer!.phoneNumber,
-      items: cart.items
-        .filter(item => item.quantity > 0)
-        .map(item => ({
-          menuItemId: item.menuItemId,
-          menuItemName: item.name,
-          quantity: item.quantity,
-          price: Number(item.price),
-          total: Number(item.price) * item.quantity,
-          spiceLevel: item.spiceLevel,
-          notes: item.notes,
-        })),
-      subtotal: subtotal,
-      tax: tax,
-      total: total,
-      status: 'pending' as const,
-      paymentStatus: 'pending' as const,
-      paymentMethod: paymentMethod,
-      tableNumber: tableNumber,
-      floorNumber: floorNumber,
-    };
+    // Check if table status is 'served' - invoice can only be generated when food is served
+    if (tableStatus !== 'served') {
+      toast({
+        title: 'Cannot Generate Invoice',
+        description: 'Invoice can only be generated once your order has been served.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
-      await createOrderMutation.mutateAsync(orderData);
+      // Update the existing order's payment status to 'invoice_generated'
+      const orderId = typeof customer.currentOrder._id === 'string' 
+        ? customer.currentOrder._id 
+        : customer.currentOrder._id.toString();
+      
+      const response = await apiRequest('PATCH', `/api/orders/${orderId}/payment`, {
+        paymentStatus: 'invoice_generated',
+        paymentMethod: paymentMethod,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update payment status');
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customer.phoneNumber, 'table-status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customer._id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders/customer', customer._id?.toString()] });
       
       setPaymentDialogOpen(false);
       setIsOpen(false);
-      clearCart();
+      // NOTE: Cart is not cleared here - it will be cleared when payment is fully completed (status: 'paid')
+      // This allows customers to review items while awaiting payment
       setPaymentMethod('cash');
       
       toast({
-        title: 'Order Confirmed!',
-        description: `The bill will be generated and brought to you at Table No: ${tableNumber}, Floor No: ${floorNumber}`,
+        title: 'Invoice Generated!',
+        description: `Your invoice has been generated and will be brought to you at Table No: ${tableNumber}, Floor No: ${floorNumber}. Please wait for staff to bring your bill.`,
         duration: 5000,
       });
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to process payment. Please try again.',
+        description: 'Failed to generate invoice. Please try again.',
         variant: 'destructive',
       });
     }
@@ -454,11 +466,17 @@ export function Cart() {
                     variant="outline"
                     className="w-full"
                     onClick={handleGenerateInvoice}
+                    disabled={isLoadingTableStatus || !tableStatus || tableStatus !== 'served'}
                     data-testid="button-generate-invoice"
                   >
                     <Receipt className="mr-2 h-4 w-4" />
                     Generate Invoice
                   </Button>
+                  {(isLoadingTableStatus || !tableStatus || tableStatus !== 'served') && (
+                    <p className="text-xs text-muted-foreground text-center" data-testid="text-invoice-waiting">
+                      {isLoadingTableStatus || !tableStatus ? 'Loading table status...' : 'Invoice generation will be available once your order is served'}
+                    </p>
+                  )}
                   <Button
                     variant="outline"
                     className="w-full"
@@ -467,14 +485,16 @@ export function Cart() {
                   >
                     Save Cart
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full"
-                    onClick={clearCart}
-                    data-testid="button-clear-cart"
-                  >
-                    Clear Cart
-                  </Button>
+                  {!customer?.currentOrder && !cart.items.some(item => item.isOrdered) && (
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={clearCart}
+                      data-testid="button-clear-cart"
+                    >
+                      Clear Cart
+                    </Button>
+                  )}
                 </div>
               </div>
             </>

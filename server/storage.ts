@@ -1098,23 +1098,49 @@ export class MongoStorage implements IStorage {
         { $set: update }
       );
       
-      // If payment is successful, clear currentOrder from customer (only if it's the current order)
-      if (paymentStatus === 'paid') {
+      // If payment is invoice generated or paid, update customer status and release table
+      if (paymentStatus === 'invoice_generated' || paymentStatus === 'paid') {
         const orderHistory = await this.ordersCollection.findOne({ "orders._id": orderId });
         if (orderHistory) {
-          // Only clear currentOrder if this order is the customer's current order
-          await this.customersCollection.updateOne(
-            { 
+          // CRITICAL: Release table BEFORE clearing currentOrder
+          // This ensures the ownership check ("currentOrder._id": orderId) still matches
+          const releaseResult = await this.customersCollection.updateOne(
+            {
               _id: orderHistory.customerId,
-              "currentOrder._id": orderId
+              "currentOrder._id": orderId,  // Verify this order is still the customer's current order
+              tableStatus: 'served'  // Only release if currently served
             },
             {
               $set: {
-                currentOrder: null,
+                tableStatus: 'free',
                 updatedAt: now,
-              },
+              }
             }
           );
+          
+          if (releaseResult.modifiedCount > 0) {
+            console.log(`[Storage] Table status released to 'free' for customer ${orderHistory.customerId}`);
+          } else {
+            console.log(`[Storage] Table was not released (order not current or table not served) for customer ${orderHistory.customerId}`);
+          }
+          
+          // Now update customer payment-related fields
+          // Clear currentOrder only if payment is fully paid
+          if (paymentStatus === 'paid') {
+            await this.customersCollection.updateOne(
+              { 
+                _id: orderHistory.customerId,
+                "currentOrder._id": orderId
+              },
+              {
+                $set: {
+                  currentOrder: null,
+                  updatedAt: now,
+                },
+              }
+            );
+            console.log(`[Storage] Payment completed, currentOrder cleared for customer ${orderHistory.customerId}`);
+          }
         }
       }
     } catch (error) {

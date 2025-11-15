@@ -284,6 +284,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { paymentStatus, paymentMethod } = req.body;
+      
+      // Validate payment status
+      const validStatuses = ['pending', 'invoice_generated', 'paid', 'failed'];
+      if (!validStatuses.includes(paymentStatus)) {
+        return res.status(400).json({ message: "Invalid payment status" });
+      }
+      
       await storage.updatePaymentStatus(id, paymentStatus, paymentMethod);
       res.json({ message: "Payment status updated" });
     } catch (error) {
