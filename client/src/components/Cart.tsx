@@ -485,16 +485,16 @@ export function Cart() {
                   >
                     Save Cart
                   </Button>
-                  {!customer?.currentOrder && !cart.items.some(item => item.isOrdered) && (
-                    <Button
-                      variant="ghost"
-                      className="w-full"
-                      onClick={clearCart}
-                      data-testid="button-clear-cart"
-                    >
-                      Clear Cart
-                    </Button>
-                  )}
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={clearCart}
+                    disabled={cart.items.some(item => item.isOrdered)}
+                    data-testid="button-clear-cart"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Clear Cart
+                  </Button>
                 </div>
               </div>
             </>
