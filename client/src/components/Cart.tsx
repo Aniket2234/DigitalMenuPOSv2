@@ -329,10 +329,11 @@ export function Cart() {
       queryClient.invalidateQueries({ queryKey: ['/api/customers', customer._id] });
       queryClient.invalidateQueries({ queryKey: ['/api/orders/customer', customer._id?.toString()] });
       
+      // Clear the cart after successful invoice generation
+      clearCart();
+      
       setPaymentDialogOpen(false);
       setIsOpen(false);
-      // NOTE: Cart is not cleared here - it will be cleared when payment is fully completed (status: 'paid')
-      // This allows customers to review items while awaiting payment
       setPaymentMethod('cash');
       
       toast({

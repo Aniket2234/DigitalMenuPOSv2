@@ -1133,6 +1133,23 @@ export class MongoStorage implements IStorage {
         { $set: update }
       );
       
+      // CRITICAL: Also update the customer's currentOrder paymentStatus
+      // Since currentOrder is a denormalized copy, we need to keep it in sync
+      const customerUpdate: any = {
+        "currentOrder.paymentStatus": paymentStatus,
+        "currentOrder.updatedAt": now,
+        updatedAt: now,
+      };
+      if (paymentMethod) {
+        customerUpdate["currentOrder.paymentMethod"] = paymentMethod;
+      }
+      
+      await this.customersCollection.updateOne(
+        { "currentOrder._id": orderId },
+        { $set: customerUpdate }
+      );
+      console.log(`[Storage] Updated currentOrder paymentStatus to '${paymentStatus}' for order ${orderId}`);
+      
       // If payment is invoice generated or paid, update customer status and release table
       if (paymentStatus === 'invoice_generated' || paymentStatus === 'paid') {
         const orderHistory = await this.ordersCollection.findOne({ "orders._id": orderId });
@@ -1159,9 +1176,9 @@ export class MongoStorage implements IStorage {
             console.log(`[Storage] Table was not released (order not current or table not served) for customer ${orderHistory.customerId}`);
           }
           
-          // Now update customer payment-related fields
-          // Clear currentOrder only if payment is fully paid
-          if (paymentStatus === 'paid') {
+          // Clear currentOrder when invoice is generated or payment is fully paid
+          // This allows the customer to start a fresh order
+          if (paymentStatus === 'invoice_generated' || paymentStatus === 'paid') {
             await this.customersCollection.updateOne(
               { 
                 _id: orderHistory.customerId,
@@ -1174,7 +1191,7 @@ export class MongoStorage implements IStorage {
                 },
               }
             );
-            console.log(`[Storage] Payment completed, currentOrder cleared for customer ${orderHistory.customerId}`);
+            console.log(`[Storage] Invoice generated/Payment completed, currentOrder cleared for customer ${orderHistory.customerId}`);
           }
         }
       }
