@@ -182,6 +182,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/customers/:phoneNumber/table-status", async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      const { normalizePhoneNumber } = await import("@shared/utils/phoneNormalization");
+      const normalizedPhone = normalizePhoneNumber(phoneNumber);
+      
+      const tableStatusSchema = z.object({
+        tableStatus: z.enum(['free', 'occupied', 'preparing', 'ready', 'served']),
+      });
+      
+      const validatedData = tableStatusSchema.parse(req.body);
+      
+      const updatedCustomer = await storage.updateCustomerTableStatus(
+        normalizedPhone,
+        validatedData.tableStatus
+      );
+      
+      if (!updatedCustomer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      res.json(updatedCustomer);
+    } catch (error: any) {
+      console.error("Error updating table status:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid table status data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update table status" });
+    }
+  });
+
   app.post("/api/customers/:id/favorites", async (req, res) => {
     try {
       const { id } = req.params;

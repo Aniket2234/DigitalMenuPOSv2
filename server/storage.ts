@@ -829,6 +829,33 @@ export class MongoStorage implements IStorage {
     }
   }
 
+  async updateCustomerTableStatus(phoneNumber: string, tableStatus: 'free' | 'occupied' | 'preparing' | 'ready' | 'served'): Promise<Customer | undefined> {
+    try {
+      const now = new Date();
+      const maskedPhone = phoneNumber.slice(0, 3) + '*'.repeat(phoneNumber.length - 3);
+      console.log(`[Storage] Updating table status for phone: ${maskedPhone}, tableStatus: ${tableStatus}`);
+      const updatedCustomer = await this.customersCollection.findOneAndUpdate(
+        { phoneNumber },
+        {
+          $set: { 
+            tableStatus, 
+            updatedAt: now 
+          }
+        },
+        { returnDocument: 'after' }
+      );
+      if (updatedCustomer) {
+        console.log(`[Storage] Successfully updated table status - tableStatus: ${updatedCustomer.tableStatus}`);
+      } else {
+        console.log(`[Storage] Customer not found for phone: ${maskedPhone}`);
+      }
+      return updatedCustomer || undefined;
+    } catch (error) {
+      console.error("Error updating customer table status:", error);
+      return undefined;
+    }
+  }
+
   async addFavorite(customerId: string, menuItemId: string): Promise<void> {
     try {
       const now = new Date();

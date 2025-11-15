@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCustomer } from '@/contexts/CustomerContext';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -57,6 +57,20 @@ export function Cart() {
   const [tempNotes, setTempNotes] = useState('');
   const [tempSpiceLevel, setTempSpiceLevel] = useState<'regular' | 'less-spicy' | 'more-spicy' | 'no-spicy'>('regular');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card'>('cash');
+  const tableStatusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const updateTableStatusMutation = useMutation({
+    mutationFn: async (data: { phoneNumber: string; tableStatus: string }) => {
+      const response = await apiRequest('PATCH', `/api/customers/${data.phoneNumber}/table-status`, {
+        tableStatus: data.tableStatus,
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      console.log('[Table Status] Successfully updated to occupied');
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customer?.phoneNumber, 'table-status'] });
+    },
+  });
 
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -223,6 +237,39 @@ export function Cart() {
         description,
       });
       markItemsAsOrdered();
+
+      // Backup mechanism: Check if table status is still "free" after 2 seconds
+      // If POS doesn't update it within 2 seconds, we update it to "occupied"
+      if (tableStatusTimeoutRef.current) {
+        clearTimeout(tableStatusTimeoutRef.current);
+      }
+      
+      tableStatusTimeoutRef.current = setTimeout(async () => {
+        try {
+          // Fetch the latest table status
+          const statusResponse = await apiRequest('GET', `/api/customers/${customer.phoneNumber}/table-status`);
+          const latestStatus = await statusResponse.json();
+          
+          console.log('[Table Status Backup] Current status after 2 seconds:', latestStatus.tableStatus);
+          
+          // If still "free", update to "occupied"
+          if (latestStatus.tableStatus === 'free') {
+            console.log('[Table Status Backup] POS did not update status, setting to occupied');
+            await updateTableStatusMutation.mutateAsync({
+              phoneNumber: customer.phoneNumber,
+              tableStatus: 'occupied',
+            });
+            toast({
+              title: 'Table Status Updated',
+              description: 'Your table is now marked as occupied.',
+            });
+          } else {
+            console.log('[Table Status Backup] POS already updated status to:', latestStatus.tableStatus);
+          }
+        } catch (error) {
+          console.error('[Table Status Backup] Error checking/updating table status:', error);
+        }
+      }, 2000);
     } catch (error) {
       toast({
         title: 'Error',
